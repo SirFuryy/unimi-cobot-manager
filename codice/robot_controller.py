@@ -33,7 +33,8 @@ def ConnessioneStandard(gui: MultiTerminalGUI):
         gui.write_to_terminal(0, "Connessione al robot riuscita!")
         return dashboard, move, feed, feedFour
     except Exception as e:
-        gui.write_to_terminal(0, "Connessione al robot fallita: ", e)
+        msg = f"Connessione al robot fallita: {str(e)}"
+        gui.write_to_terminal(0, msg)
         raise e
 
 def RunPoint(dashboard: DobotApiDashboard, move: DobotApiMove, gui: MultiTerminalGUI, target_joints: list):

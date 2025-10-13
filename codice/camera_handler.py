@@ -5,25 +5,29 @@ from crop_sensing import zed_manager, find_plant, create_plc
 from multi_terminal_gui import MultiTerminalGUI
 from pose_class import Pose
 
-zed = None  # Global variable to hold the ZED camera instance
+global zed, pose  # Global variable to hold the ZED camera instance and the original pose
+zed = None
+pose = None
 
-def start_cam(pose: Pose, gui: MultiTerminalGUI):
-    global zed
+def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
+    global zed, pose
     if zed is None:
         try:
-            zed = zed_manager.zed_init(pose)
-            gui.write_to_terminal(0, "ZED camera initialized.")
+            zed = zed_manager.zed_init(system_pose)
+            pose = system_pose
+            gui.write_to_terminal(2, "ZED camera initialized.")
         except Exception as e:
             gui.write_to_terminal(4, f"Failed to initialize ZED camera: {e}")
             raise e
     else:
-        gui.write_to_terminal(0, "ZED camera is already initialized.")
+        gui.write_to_terminal(2, "ZED camera is already initialized.")
 
-def use_cam(pose: Pose, plants_number: int, gui: MultiTerminalGUI): 
-    global zed
+def use_cam(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI): 
+    global zed, pose
     # Initialize the ZED camera
     if zed is None:
-        start_cam(pose, gui)
+        start_cam(system_pose, gui)
+        pose = system_pose
 
     # Capture the environment with the ZED camera
     image, depth_map, normal_map, point_cloud = get_image_cam(gui, save=True)
@@ -121,7 +125,21 @@ def get_dobot_front_face_center_and_size(bbox_json: dict):
 
     return min_pt, max_pt, dobot_coords, bbox_size
 
+# Metodo di test
 def usa_cam(pose: Pose, plants_number: int): 
+    """
+    Metodo di test per utilizzare la telecamera ZED e processare l'ambiente circostante.
+    Questo metodo inizializza la telecamera ZED, cattura immagini e mappe di profondità,
+    filtra le piante dallo sfondo, segmenta le piante in cluster e salva i dati rilevanti.
+    Inoltre, registra un video dell'ambiente per creare un file di point cloud (.ply).
+    Args:
+        pose (Pose): La posizione iniziale della telecamera ZED.
+        plants_number (int): Il numero di piante da segmentare nell'immagine.
+    Note:
+        Questo metodo è progettato per scopi di test e dimostrazione.
+    """
+
+    global zed
     # Initialize the ZED camera
     zed = zed_manager.zed_init(pose)
     
