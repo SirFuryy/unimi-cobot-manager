@@ -4,170 +4,117 @@ import time
 import threading
 from typing import Tuple, List
 
-class RobotController:
-    def __init__(self, host: str = "192.168.1.100", port: int = 5000):
-        """
-        Inizializza il controller del robot.
+import camera_handler
+from codice import robot_controller
+from multi_terminal_gui import MultiTerminalGUI
+
+
+def start_scanning(gui: MultiTerminalGUI, plant_name: str, frames_to_record: int = 300):
+    """Avvia la scansione in background."""
+
+    camera_handler.record_cam(gui, plant_name, frames_to_record)
+
+    gui.write_to_terminal(2, f"Scansione avviata per {plant_name} con {frames_to_record} fotogrammi.")
+
+def scan_plant(posizione_piantina, bbox, gui: MultiTerminalGUI, plant_name: str, frames_to_record: int = 300):
+    """
+    Esegue la scansione completa della piantina muovendosi nei quattro punti.
+    
+    Args:
+        center_x, center_y, center_z: Coordinate del centro della piantina
+        distance: Distanza dal centro per i punti di scansione
+    """
+    
+    if posizione_piantina is None:
+        gui.write_to_terminal(2, "Posizione della piantina non trovata.")
+        return
+    
+    if posizione_piantina[2] < 0:   #Il braccio sarebbe sotto il piano di lavoro
+        gui.write_to_terminal(2, "Posizione della piantina non valida.")
+        return
+    
+    if not robot_controller.position_reachable(posizione_piantina):
+        gui.write_to_terminal(2, "Posizione della piantina non raggiungibile.")
+        return
+    
+    if posizione_piantina[0] == 0 or posizione_piantina[1] == 0:   #Siamo su uno degli assi
+        gui.write_to_terminal(2, "Posizione della piantina non valida.")
+        return
+    
+    if posizione_piantina[0] > 0 & posizione_piantina[1] > 0:   #Primo quadrante
+        movement_first_quadrant(posizione_piantina, bbox, gui, plant_name)
+        return
+    
+    if posizione_piantina[0] < 0 & posizione_piantina[1] > 0:   #Secondo quadrante
+        return
+
+    if posizione_piantina[0] < 0 & posizione_piantina[1] < 0:   #Terzo quadrante
+        return
+
+    if posizione_piantina[0] > 0 & posizione_piantina[1] < 0:   #Quarto quadrante
+        return
+    
+    
+    # Avvia la scansione in background
+    threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
+
+def movement_first_quadrant(posizione_piantina, bbox, gui: MultiTerminalGUI, plant_name: str):
+    """
+    Esegue il movimento del braccio per la scansione della piantina nel primo quadrante.
+    
+    Args:
+        center_x, center_y, center_z: Coordinate del centro della piantina
+        distance: Distanza dal centro per i punti di scansione
+    """
+    
+    
+    # TODO: modificare come calcoliamo la boundig box nel modello (x,y,z,lx,ly,lz) rispeto al punto più vicino all'origine (0,0,0)
+    # IDEA: bbox = [posizione_piantina[0] - bbox[3]/2, posizione_piantina[1] - bbox[4]/2, posizione_piantina[2] - bbox[5]/2, bbox[3], bbox[4], bbox[5]]
+    # ALTRA IDEA: farlo direttamente in get bbox di camera handler, così da avere un modello standardizzato
+    
+    # TODO: calcolare la distanza dal centro della piantina, con z massimo per la piantina + 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi per i quattro altri punti
+    
+    # TODO: verificare che i punti siano raggiungibili, altrimenti avvisare l'utente e saltare quel punto
+    
+    # TODO: fare runpoint su quei punti nel mentre che la scannsione è già aprtita, bisogna capire quanto tempo ci mette la scansione e regolare i tempi
+    
+    # TODO: modificare le funzioni di robot controller per renderle più efficaci e togliere quella cagata di get angle se non è raggiungibile
+    
+    # TODO: la funzione position reachable
+    
+    
+    
+    
+    distance = 30  # Distanza dal centro per i punti di scansione
+    
+    # Calcola le coordinate dei quattro punti di scansione
+    points = [
+        (posizione_piantina[0] - distance, posizione_piantina[1] + distance, posizione_piantina[2]),  # Punto in alto a sinistra
+        (posizione_piantina[0] + distance, posizione_piantina[1] + distance, posizione_piantina[2]),  # Punto in alto a destra
+        (posizione_piantina[0] + distance, posizione_piantina[1] - distance, posizione_piantina[2]),  # Punto in basso a destra
+        (posizione_piantina[0] - distance, posizione_piantina[1] - distance, posizione_piantina[2])   # Punto in basso a sinistra
+    ]
+    
+    # Salva la posa originale del robot
+    original_pose = robot_controller.get_current_pose()
+    
+    for idx, point in enumerate(points):
+        if not robot_controller.position_reachable(point):
+            gui.write_to_terminal(2, f"Punto di scansione {idx+1} non raggiungibile: {point}")
+            continue
         
-        Args:
-            host: Indirizzo IP del robot
-            port: Porta TCP/IP del robot
-        """
-        self.host = host
-        self.port = port
-        self.socket = None
-        self.is_scanning = False
-        self.scan_data = []
+        gui.write_to_terminal(2, f"Spostamento al punto di scansione {idx+1}: {point}")
         
-    def connect(self):
-        """Stabilisce la connessione con il robot."""
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.host, self.port))
-        print(f"Connesso al robot su {self.host}:{self.port}")
-    
-    def disconnect(self):
-        """Chiude la connessione con il robot."""
-        if self.socket:
-            self.socket.close()
-            print("Disconnesso dal robot")
-    
-    def send_command(self, command: dict) -> dict:
-        """
-        Invia un comando al robot e riceve la risposta.
+        success = robot_controller.move_to_position(point)
+        if not success:
+            gui.write_to_terminal(2, f"Errore nello spostamento al punto di scansione {idx+1}.")
+            continue
         
-        Args:
-            command: Dizionario contenente il comando
-            
-        Returns:
-            Risposta del robot come dizionario
-        """
-        message = json.dumps(command)
-        self.socket.sendall(message.encode('utf-8'))
-        response = self.socket.recv(4096).decode('utf-8')
-        return json.loads(response)
-    
-    def move_to_position(self, x: float, y: float, z: float):
-        """
-        Muove il robot a una posizione specifica.
-        
-        Args:
-            x, y, z: Coordinate della posizione target
-        """
-        command = {
-            "action": "move",
-            "x": x,
-            "y": y,
-            "z": z
-        }
-        response = self.send_command(command)
-        print(f"Movimento a ({x}, {y}, {z}): {response.get('status', 'unknown')}")
-        time.sleep(0.5)  # Attesa per completare il movimento
-    
-    def start_scanning(self):
-        """Avvia la scansione in background."""
-        self.is_scanning = True
-        self.scan_thread = threading.Thread(target=self._scan_worker)
-        self.scan_thread.start()
-        print("Scansione avviata")
-    
-    def stop_scanning(self):
-        """Ferma la scansione."""
-        self.is_scanning = False
-        if hasattr(self, 'scan_thread'):
-            self.scan_thread.join()
-        print("Scansione terminata")
-    
-    def _scan_worker(self):
-        """Worker thread per la scansione continua."""
-        while self.is_scanning:
-            # Simula la raccolta dati dalla scansione
-            scan_command = {"action": "scan"}
-            try:
-                data = self.send_command(scan_command)
-                self.scan_data.append({
-                    "timestamp": time.time(),
-                    "data": data
-                })
-            except Exception as e:
-                print(f"Errore durante la scansione: {e}")
-            time.sleep(0.1)  # Frequenza di scansione
-    
-    def calculate_scan_points(self, center_x: float, center_y: float, 
-                             center_z: float, distance: float = 0.5) -> List[Tuple[float, float, float]]:
-        """
-        Calcola i quattro punti attorno alla piantina.
-        
-        Args:
-            center_x, center_y, center_z: Coordinate del centro della piantina
-            distance: Distanza dal centro per i punti di scansione
-            
-        Returns:
-            Lista di tuple con le coordinate dei quattro punti
-        """
-        points = [
-            (center_x + distance, center_y, center_z),  # Destra
-            (center_x, center_y + distance, center_z),  # Avanti
-            (center_x - distance, center_y, center_z),  # Sinistra
-            (center_x, center_y - distance, center_z)   # Indietro
-        ]
-        return points
-    
-    def scan_plant(self, center_x: float, center_y: float, center_z: float, 
-                   distance: float = 0.5):
-        """
-        Esegue la scansione completa della piantina muovendosi nei quattro punti.
-        
-        Args:
-            center_x, center_y, center_z: Coordinate del centro della piantina
-            distance: Distanza dal centro per i punti di scansione
-        """
-        # Calcola i punti di scansione
-        scan_points = self.calculate_scan_points(center_x, center_y, center_z, distance)
+        time.sleep(1)  # Attendi un secondo per stabilizzare la posizione
         
         # Avvia la scansione in background
-        self.start_scanning()
+        threading.Thread(target=start_scanning, args=(gui, plant_name), daemon=True).start()
         
-        try:
-            # Muovi il robot attraverso i quattro punti
-            for i, (x, y, z) in enumerate(scan_points, 1):
-                print(f"Movimento al punto {i}/4")
-                self.move_to_position(x, y, z)
-                time.sleep(1)  # Pausa per acquisire dati da ogni posizione
-        finally:
-            # Ferma la scansione
-            self.stop_scanning()
-            print(f"Scansione completata. Dati raccolti: {len(self.scan_data)} campioni")
+        time.sleep(5)  # Attendi che la scansione sia completata (regola questo valore secondo necessità)
     
-    def save_scan_data(self, filename: str = "scan_data.json"):
-        """
-        Salva i dati della scansione su file.
-        
-        Args:
-            filename: Nome del file di output
-        """
-        with open(filename, 'w') as f:
-            json.dump(self.scan_data, f, indent=2)
-        print(f"Dati salvati in {filename}")
-
-
-# Esempio di utilizzo
-if __name__ == "__main__":
-    # Inizializza il controller
-    robot = RobotController(host="192.168.1.100", port=5000)
-    
-    try:
-        # Connetti al robot
-        robot.connect()
-        
-        # Coordinate del centro della piantina
-        plant_center = (1.0, 2.0, 0.5)  # x, y, z
-        
-        # Esegui la scansione
-        robot.scan_plant(*plant_center, distance=0.3)
-        
-        # Salva i dati
-        robot.save_scan_data("plant_scan.json")
-        
-    finally:
-        # Disconnetti
-        robot.disconnect()
+    # Torna alla posa

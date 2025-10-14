@@ -5,11 +5,26 @@ from crop_sensing import zed_manager, find_plant, create_plc
 from multi_terminal_gui import MultiTerminalGUI
 from pose_class import Pose
 
-global zed, pose  # Global variable to hold the ZED camera instance and the original pose
+from typing import Tuple, List
+
+global zed, pose  # Global variable to hold the ZED camera instance and the original pose, setted to None initially
 zed = None
 pose = None
 
 def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
+    """
+    Initializes the ZED camera if it is not already initialized.
+    This function attempts to initialize the ZED camera using the provided
+    system pose. If the camera is already initialized, it notifies the user
+    through the GUI. If the initialization fails, an exception is raised
+    and an error message is displayed in the GUI.
+    Args:
+        system_pose (Pose): The pose of the system used to initialize the ZED camera.
+        gui (MultiTerminalGUI): The GUI object used to display messages to the user.
+    Raises:
+        Exception: If the ZED camera initialization fails.
+    """
+    
     global zed, pose
     if zed is None:
         try:
@@ -22,7 +37,23 @@ def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
     else:
         gui.write_to_terminal(2, "ZED camera is already initialized.")
 
-def use_cam(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI): 
+def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI):
+    """
+    Scans the environment using a ZED camera to locate and segment plants, returning their 3D bounding boxes.
+    Args:
+        system_pose (Pose): The initial pose of the system, used to initialize the camera.
+        plants_number (int): The number of plants to segment and identify in the environment.
+        gui (MultiTerminalGUI): The graphical user interface object for displaying information and saving outputs.
+    Returns:
+        list: A list of 3D bounding boxes for the segmented plants. Each bounding box is represented as a set of 3D points.
+    Notes:
+        - The function initializes the ZED camera if it is not already started.
+        - Captures an image, depth map, normal map, and point cloud of the environment.
+        - Filters the plants from the background using a mask.
+        - Segments the plants into clusters and saves a visualization of the clustered image.
+        - Extracts the 3D bounding boxes of the segmented plants using the point cloud data.
+    """
+     
     global zed, pose
     # Initialize the ZED camera
     if zed is None:
@@ -50,6 +81,22 @@ def use_cam(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI):
     return bbox
 
 def get_image_cam(gui: MultiTerminalGUI, save: bool = False):
+    """
+    Captures an image and related data from the ZED camera.
+    This function retrieves an image, depth map, normal map, and point cloud 
+    from the ZED camera. If the camera is not initialized, it logs an error 
+    message to the GUI terminal. Optionally, the captured image can be saved.
+    Args:
+        gui (MultiTerminalGUI): The GUI instance used to display messages 
+            and logs.
+        save (bool, optional): A flag indicating whether to save the captured 
+            image. Defaults to False.
+    Returns:
+        tuple or None: A tuple containing the image, depth map, normal map, 
+        and point cloud if successful. Returns None if an error occurs or 
+        if the camera is not initialized.
+    """
+    
     global zed
     if zed is None:
         gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
@@ -64,6 +111,26 @@ def get_image_cam(gui: MultiTerminalGUI, save: bool = False):
         return None
 
 def record_cam(gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int = 300):
+    """
+    Records a point cloud using the ZED camera and saves it to a file.
+    This function interacts with a ZED camera to capture a point cloud for a specified plant.
+    The captured data is saved to a file, and the status of the operation is displayed in the GUI.
+    Args:
+        gui (MultiTerminalGUI): The GUI instance used to display messages to the user.
+        plant_name (str, optional): The name of the plant for which the point cloud is recorded.
+                                    Defaults to "piantina1".
+        frames (int, optional): The number of frames to record for the point cloud. Defaults to 300.
+    Raises:
+        Exception: If an error occurs during the recording or saving process, the exception is raised
+                   and an error message is displayed in the GUI.
+    Notes:
+        - The ZED camera must be initialized before calling this function. If the camera is not
+          initialized, a message is displayed in the GUI, and the function exits without performing
+          any operation.
+        - The function uses the `create_plc.record_and_save` method to handle the recording and saving
+          of the point cloud data.
+    """
+    
     global zed
     if zed is None:
         gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
@@ -77,6 +144,19 @@ def record_cam(gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int
         raise e
 
 def close_cam(gui: MultiTerminalGUI):
+    """
+    Closes the ZED camera if it is currently initialized.
+    This function checks if the global `zed` camera object is initialized.
+    If it is, the camera is closed, the `zed` object is set to `None`, and
+    a message is written to the first terminal of the provided `MultiTerminalGUI`
+    instance indicating that the camera has been closed. If the `zed` object
+    is not initialized, a message is written to the terminal indicating that
+    the camera is not initialized.
+    Args:
+        gui (MultiTerminalGUI): An instance of the MultiTerminalGUI class used
+                                to write messages to the terminal.
+    """
+    
     global zed
     if zed is not None:
         zed.close()
@@ -160,3 +240,24 @@ def usa_cam(pose: Pose, plants_number: int):
     # Create point cloud (this will create a .ply file by taking a video of the environment)
     zed.close()
     create_plc.record_and_save(plant_name='piantina1', frames=300)
+    
+    
+def calculate_scan_points(self, center_x: float, center_y: float, 
+                             center_z: float, distance: float = 0.5) -> List[Tuple[float, float, float]]:
+        """
+        Calcola i quattro punti attorno alla piantina.
+        
+        Args:
+            center_x, center_y, center_z: Coordinate del centro della piantina
+            distance: Distanza dal centro per i punti di scansione
+            
+        Returns:
+            Lista di tuple con le coordinate dei quattro punti
+        """
+        points = [
+            (center_x + distance, center_y, center_z),  # Destra
+            (center_x, center_y + distance, center_z),  # Avanti
+            (center_x - distance, center_y, center_z),  # Sinistra
+            (center_x, center_y - distance, center_z)   # Indietro
+        ]
+        return points
