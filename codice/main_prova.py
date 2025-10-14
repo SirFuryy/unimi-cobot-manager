@@ -1,11 +1,13 @@
 # prova_compl.py
 
 import threading
+import time
 import tkinter as tk
 from transforms3d.euler import euler2quat
+import numpy as np
 
-import camera_handler_mock as camera_handler
-#import camera_handler
+#import camera_handler_mock as camera_handler
+import camera_handler
 import robot_controller
 import feed_thread
 from codice.multi_terminal_gui import MultiTerminalGUI
@@ -15,6 +17,7 @@ global dashboard, move, feed, feedFour
 
 def avvia_programma(gui: MultiTerminalGUI):
     global dashboard, move, feed, feedFour
+    
     # Initialize robot connection
     dashboard, move, feed, feedFour = robot_controller.ConnessioneStandard(gui)
 
@@ -27,39 +30,20 @@ def avvia_programma(gui: MultiTerminalGUI):
     thread_error.daemon = True
     thread_error.start()
 
-    # Optional: print feedback to console
-    thread_print = threading.Thread(target=feed_thread.stampaFeed, args=(gui,), name="PrintFeedbackThread")
-    thread_print.daemon = True
-    thread_print.start()
-
-    # Camera response handler
-    def handle_response(response):
-        print("Response received:", response)
-        min_pt, max_pt, coord_face, bbox_size = camera_handler.get_dobot_front_face_center_and_size(response)
-        # Update GUI with new values (thread-safe call)
-        gui.write_to_terminal(2, f"--------\nMin Point: {min_pt} - Max Point: {max_pt}")
-        gui.write_to_terminal(2, f"Dobot Coords: {coord_face} - BBox Size: {bbox_size}")
-        # Move robot to the calculated point
-        robot_controller.raggiungi_punto(dashboard, move, gui, coord_face)
-
-    # Start listening thread for camera responses
-    #CAMERA_LISTEN_IP = "192.168.5.2"
-    #CAMERA_LISTEN_PORT = 5005
-    #camera_handler.start_listening_thread(CAMERA_LISTEN_IP, CAMERA_LISTEN_PORT, handle_response)
-
     # Prepare initial pose to send to camera
-    CORD = [-143.7374, 69.6845, 646.8096, 93.9973, -0.0089, -179.7939]
+    CORD_RIPOSO = [142.000000, 19.500000, 314.800000, 180.000000, 0.000000, -180.000000]
     pose = Pose()
-    pose.position.x = CORD[0]
-    pose.position.y = CORD[1]
-    pose.position.z = CORD[2]
-    quat = euler2quat(CORD[3], CORD[4], CORD[5], axes='sxyz')
+    pose.position.x = CORD_RIPOSO[0]/1000
+    pose.position.y = CORD_RIPOSO[1]/1000
+    pose.position.z = CORD_RIPOSO[2]/1000
+    angles_radiant = np.radians([CORD_RIPOSO[3], CORD_RIPOSO[4], CORD_RIPOSO[5]])
+    quat = euler2quat(angles_radiant[0], angles_radiant[1], angles_radiant[2], axes='sxyz')
     pose.orientation.x = quat[1]
     pose.orientation.y = quat[2]
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
     print("Coordinate salvate")
-    gui.write_to_terminal(0, f"Coordinate salvate: {CORD}")
+    gui.write_to_terminal(0, f"Coordinate salvate: {CORD_RIPOSO}")
 
     # Enable robot and set speed
     print("Inizio abilitazione...")
@@ -73,18 +57,48 @@ def avvia_programma(gui: MultiTerminalGUI):
         pass
 
     # Move robot to initial position (example)
-    initial_joints = [-90.0, -22.0000, 43.0000, 52.0000, -90.0, 180.0]
+    initial_joints = [-90.0000, -75.0000, 138.0000, 27.0000, -90.0000, 180.0000]
     robot_controller.RunPoint(dashboard, move, gui, initial_joints)
-
+    
     camera_handler.start_cam(pose, gui)
+    
+    gui.set_status("READY", "yellow")
+
+def find_plant(gui: MultiTerminalGUI):
+    global dashboard, move, feed, feedFour
+    
+    high_vision_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
+    HIGH_VISION_POSE = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
+    robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
+
     camera_handler.get_image_cam(gui, True)
-
-    # Send pose to camera server
-    #SERVER_IP = "192.168.5.4"
-    #SERVER_PORT = 5005
-    #camera_handler.send_pose_to_socket(SERVER_IP, SERVER_PORT, gui, pose)
-
-
+    
+    pose = Pose()
+    pose.position.x = HIGH_VISION_POSE[0]/1000
+    pose.position.y = HIGH_VISION_POSE[1]/1000
+    pose.position.z = HIGH_VISION_POSE[2]/1000
+    angles_radiant = np.radians([HIGH_VISION_POSE[3], HIGH_VISION_POSE[4], HIGH_VISION_POSE[5]])
+    quat = euler2quat(angles_radiant[0], angles_radiant[1], angles_radiant[2], axes='sxyz')
+    pose.orientation.x = quat[1]
+    pose.orientation.y = quat[2]
+    pose.orientation.z = quat[3]
+    pose.orientation.w = quat[0]
+    
+    plants_number = 1
+    
+    ll = camera_handler.use_cam(pose, plants_number, gui)
+    
+    print("Piante trovate:", ll)
+    
+def scan_and_record(plant_name: str, gui: MultiTerminalGUI):
+    global dashboard, move, feed, feedFour
+    
+    scan_joints = [-93.0000, -46.0000, 86.0000, 22.0000, -90.0000, 180.0000]
+    robot_controller.RunPoint(dashboard, move, gui, scan_joints)
+    
+    camera_handler.record_cam(gui, plant_name, frames=300)
+    
+    gui.write_to_terminal(0, f"Scan and record for {plant_name} completed.")
 
 def main():
     terminal_names = [
@@ -99,22 +113,155 @@ def main():
     # Inizializza GUI
     gui = MultiTerminalGUI(terminal_titles=terminal_names)
     
-    # Esempio: aggiungi un pulsante nella colonna controlli
-    start_button = tk.Button(
-        gui.control_frame,
-        text="Avvia Programma",
-        command= lambda: avvia_programma(gui),
-        width=20
+    t = threading.Thread(target=avvia_programma, args=(gui,), daemon=True)
+    
+    # Button to start the robot
+    start_button = gui._create_styled_button(
+        gui.control_container,
+        text="▶️ AVVIA PROGRAMMA",
+        #command=lambda: avvia_programma(gui),
+        command=lambda: t.start(),
+        width=20,
+        color_type='success'
     )
     gui.add_control(start_button)
+    
+    # Button to find plants
+    # Separatore
+    separator = tk.Frame(gui.control_container, height=2, bg=gui.colors['border'])
+    gui.add_control(separator)
 
-    stop_button = tk.Button(
-        gui.control_frame,
-        text="Chiudi Programma",
-        command=gui.root.quit,
-        width=20
+    # Campo di input stilizzato per il valore della scansione
+    input_frame = tk.Frame(gui.control_container, bg=gui.colors['bg_secondary'])
+    gui.add_control(input_frame)
+    
+    scan_label = tk.Label(
+        input_frame, 
+        text="PIANTE DA SCANSIONARE",
+        font=("Segoe UI", 9),
+        bg=gui.colors['bg_secondary'],
+        fg=gui.colors['text_secondary']
     )
-    gui.add_control(stop_button)
+    scan_label.pack(pady=(10, 5))
+    
+    scan_entry = tk.Entry(
+        input_frame, 
+        width=25,
+        font=("Segoe UI", 10),
+        bg=gui.colors['bg_main'],
+        fg=gui.colors['text_primary'],
+        insertbackground=gui.colors['text_primary'],
+        bd=0,
+        relief="flat"
+    )
+    scan_entry.pack(pady=5, ipady=8, padx=2)
+    
+    val = 0
+
+    # Funzione che esegue la scansione in background usando il valore inserito
+    def start_scan():
+        gui.set_status("SCANNING...", "green")
+        val = scan_entry.get().strip()
+        if not val:
+            gui.write_to_terminal(3, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
+            gui.set_status("READY", "yellow")
+            return
+        try:
+            numeric_val = float(val)
+            n = max(0, int(numeric_val))  # Limita al minimo 0 pulsanti
+            n = min(n, 10)  # Limita a massimo 10 pulsanti
+            if n == 0:
+                gui.write_to_terminal(3, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
+                gui.set_status("READY", "yellow")
+                return
+
+            def scan_task():
+                find_plant(gui)
+
+                def create_buttons():
+                    # Rimuove eventuali pulsanti precedenti
+                    if hasattr(gui, 'scan_buttons_frame') and gui.scan_buttons_frame.winfo_exists():
+                        try:
+                            gui.scan_buttons_frame.destroy()
+                        except Exception:
+                            pass
+
+                    # Frame per i pulsanti di scansione con stile
+                    gui.scan_buttons_frame = tk.Frame(
+                        gui.control_container,
+                        bg=gui.colors['bg_main'],
+                        highlightbackground=gui.colors['border'],
+                        highlightthickness=1
+                    )
+                    gui.scan_buttons_frame.pack(fill=tk.X, pady=10, padx=2)
+                    
+                    # Titolo sezione
+                    scan_title = tk.Label(
+                        gui.scan_buttons_frame,
+                        text="🌱 SCAN RESULTS",
+                        font=("Segoe UI", 9, "bold"),
+                        bg=gui.colors['bg_main'],
+                        fg=gui.colors['accent_1']
+                    )
+                    scan_title.pack(pady=5)
+
+                    gui.scan_handlers = {}
+                    for i in range(n):
+                        def make_handler(idx):
+                            def handler(idx=idx):
+                                # Funzione unica per ogni pulsante: personalizzabile
+                                gui.write_to_terminal(3, f"[Scan] ✅ Pianta {idx+1} selezionata")
+                                # Qui si possono eseguire azioni diverse per idx
+                            return handler
+
+                        btn = tk.Button(
+                            gui.scan_buttons_frame,
+                            text=f"🌿 Pianta {i+1}",
+                            command=make_handler(i),
+                            width=18,
+                            font=("Segoe UI", 9),
+                            bg=gui.colors['accent_1'],
+                            fg='#ffffff',
+                            activebackground=gui._lighten_color(gui.colors['accent_1']),
+                            bd=0,
+                            padx=5,
+                            pady=5,
+                            cursor="hand2"
+                        )
+                        if i == n - 1:
+                            btn.pack(fill=tk.X, padx=10, pady=(3, 10))
+                        else:
+                            btn.pack(fill=tk.X, padx=10, pady=3)
+                        
+                        # Effetti hover
+                        def on_enter(e, btn=btn):
+                            btn['background'] = gui._lighten_color(gui.colors['accent_1'])
+                        def on_leave(e, btn=btn):
+                            btn['background'] = gui.colors['accent_1']
+                        
+                        btn.bind("<Enter>", on_enter)
+                        btn.bind("<Leave>", on_leave)
+                        gui.scan_handlers[i] = make_handler(i)
+
+                # Creazione dei widget deve avvenire nel thread principale
+                gui.root.after(0, create_buttons)
+
+            threading.Thread(target=scan_task, daemon=True).start()
+            gui.set_status("READY", "yellow")
+        except ValueError:
+            gui.write_to_terminal(3, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
+            gui.set_status("ERROR", "red")
+            return
+
+    # Bottone per lanciare la scansione con stile
+    scan_button = gui._create_styled_button(
+        gui.control_container,
+        text="📡 ESEGUI SCANSIONE",
+        command=start_scan,
+        width=20,
+        color_type='primary'
+    )
+    gui.add_control(scan_button)
 
     # Start the GUI event loop
     gui.run()
