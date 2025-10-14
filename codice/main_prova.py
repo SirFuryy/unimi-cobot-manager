@@ -86,15 +86,20 @@ def find_plant(gui: MultiTerminalGUI):
     
     plants_number = 1
     
-    ll = camera_handler.use_cam(pose, plants_number, gui)
+    list_of_plants = camera_handler.use_cam(pose, plants_number, gui)
+
+    gui.write_to_terminal(2, f"Piante trovateeeeeeee: {list_of_plants}")
+
+    return list_of_plants
     
-    print("Piante trovate:", ll)
-    
-def scan_and_record(plant_name: str, gui: MultiTerminalGUI):
+def scan_and_record(plant_position: dict, plant_name: str, gui: MultiTerminalGUI):
     global dashboard, move, feed, feedFour
     
-    scan_joints = [-93.0000, -46.0000, 86.0000, 22.0000, -90.0000, 180.0000]
-    robot_controller.RunPoint(dashboard, move, gui, scan_joints)
+    # arriva al punto iniziale di scansione
+    start_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
+    robot_controller.RunPoint(dashboard, move, gui, start_joints)
+
+    #chiama funzione di moviemento intorno alle piante
     
     camera_handler.record_cam(gui, plant_name, frames=300)
     
@@ -176,8 +181,18 @@ def main():
                 return
 
             def scan_task():
-                find_plant(gui)
+                list_of_plants = find_plant(gui)    #Restituisce un dizionario con punti estremi delle varie boundyng box
+                
+                # codice per identificare il punto centrale della piantina
+                #restituisce una lista di liste, dove ogni lista interna è l'insieme delle coordinate delle posizioni delle piantine
+                
+                # il codice poi dovrà eseguire la scansione e la registrazione per ogni piantina
 
+                if not list_of_plants:
+                    gui.write_to_terminal(3, "[Scan] ❌ Nessuna pianta trovata dalla camera")
+                    gui.set_status("READY", "yellow")
+                    return
+                
                 def create_buttons():
                     # Rimuove eventuali pulsanti precedenti
                     if hasattr(gui, 'scan_buttons_frame') and gui.scan_buttons_frame.winfo_exists():
@@ -209,7 +224,8 @@ def main():
                     for i in range(n):
                         def make_handler(idx):
                             def handler(idx=idx):
-                                # Funzione unica per ogni pulsante: personalizzabile
+                                # da cambiare il parametro della funzione di scansione
+                                scan_and_record(list_of_plants[idx], f"plant_{idx+1}", gui)
                                 gui.write_to_terminal(3, f"[Scan] ✅ Pianta {idx+1} selezionata")
                                 # Qui si possono eseguire azioni diverse per idx
                             return handler
