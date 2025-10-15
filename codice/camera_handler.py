@@ -1,6 +1,7 @@
 # camera_handler.py
 
 from crop_sensing import zed_manager, find_plant, create_plc
+import numpy as np
 
 from multi_terminal_gui import MultiTerminalGUI
 from pose_class import Pose
@@ -37,15 +38,20 @@ def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
     else:
         gui.write_to_terminal(2, "ZED camera is already initialized.")
 
-def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI):
+def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTerminalGUI, bbox_type: str = "p"):
     """
     Scans the environment using a ZED camera to locate and segment plants, returning their 3D bounding boxes.
     Args:
         system_pose (Pose): The initial pose of the system, used to initialize the camera.
         plants_number (int): The number of plants to segment and identify in the environment.
         gui (MultiTerminalGUI): The graphical user interface object for displaying information and saving outputs.
+        bbox_type (str, optional): The format of the bounding boxes to return. Possible values are "c" for standard COCO format, "y" for YOLO absolute format, or "p" for Pascal VOC format. Defaults to "p".
     Returns:
-        list: A list of 3D bounding boxes for the segmented plants. Each bounding box is represented as a set of 3D points.
+        list: A list of 3D bounding boxes for the segmented plants. Each bounding box is represented as a set of 3D points in the Pascal Voc standard, such as 
+            {
+                "min": {"x": x_min, "y": y_min, "z": z_min},
+                "max": {"x": x_max, "y": y_max, "z": z_max}
+            }.
     Notes:
         - The function initializes the ZED camera if it is not already started.
         - Captures an image, depth map, normal map, and point cloud of the environment.
@@ -55,6 +61,12 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
     """
      
     global zed, pose
+
+    if bbox_type not in ["c", "y", "p"]:
+        exception_msg = f"Invalid bbox_type '{bbox_type}'. Must be 'c', 'y', or 'p'."
+        gui.write_to_terminal(4, exception_msg)
+        raise ValueError(exception_msg)
+
     # Initialize the ZED camera
     if zed is None:
         start_cam(system_pose, gui)
@@ -76,7 +88,12 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
     bbox = []
     for m in masks:
         bbxpts = find_plant.get_3d_bbox(m, point_cloud)
-        bbox.append(bbxpts)
+        if bbox_type == "c":
+            bbox.append(get_bbox_COCO(bbxpts))
+        if bbox_type == "p":
+            bbox.append(get_bbox_PascalVOC(bbxpts))
+        if bbox_type == "y":
+            bbox.append(get_bbox_YOLO(bbxpts))
 
     return bbox
 
@@ -165,6 +182,43 @@ def close_cam(gui: MultiTerminalGUI):
     else:
         gui.write_to_terminal(0, "ZED camera is not initialized.")
 
+def get_bbox_COCO(bbox_json: dict):
+    """
+    Given a bounding box JSON with 'min' and 'max' points, compute the COCO format bbox as float values, such as:
+        [x_min, y_min, z_min, width, depth, height].
+    """
+    min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
+    max_pt = {k: float(v) for k, v in bbox_json["max"].items()}
+    width = max_pt["x"] - min_pt["x"]
+    depth = max_pt["y"] - min_pt["y"]
+    height = max_pt["z"] - min_pt["z"]
+    return [min_pt["x"], min_pt["y"], min_pt["z"], width, depth, height]
+
+def get_bbox_YOLO(bbox_json: dict):
+    """
+    Given a bounding box JSON with 'min' and 'max' points, compute the YOLO format bbox in absolute value as float values, such as:
+        [center_x, center_y, center_z, width, depth, height].
+    """
+    min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
+    max_pt = {k: float(v) for k, v in bbox_json["max"].items()}
+    center_x = (min_pt["x"] + max_pt["x"]) / 2.0
+    center_y = (min_pt["y"] + max_pt["y"]) / 2.0
+    center_z = (min_pt["z"] + max_pt["z"]) / 2.0
+    width = max_pt["x"] - min_pt["x"]
+    depth = max_pt["y"] - min_pt["y"]
+    height = max_pt["z"] - min_pt["z"]
+    return [center_x, center_y, center_z, width, depth, height]
+
+def get_bbox_PascalVOC(bbox_json: dict):
+    """
+    Given a bounding box JSON with 'min' and 'max' points, compute the Pascal VOC format bbox as int values, such as:
+        [x_min, y_min, z_min, x_max, y_max, z_max]
+    """
+    min_pt = {k: int(float(v)) for k, v in bbox_json["min"].items()}
+    max_pt = {k: int(float(v)) for k, v in bbox_json["max"].items()}
+    return [min_pt["x"], min_pt["y"], min_pt["z"], max_pt["x"], max_pt["y"], max_pt["z"]]
+
+
 def get_dobot_front_face_center_and_size(bbox_json: dict):
     """
     Given a bounding box JSON with 'min' and 'max' points, compute:
@@ -172,6 +226,7 @@ def get_dobot_front_face_center_and_size(bbox_json: dict):
     - dobot_coords as (center_x, center_y, center_z, rx, ry, rz)
     - bbox_size as (size_x, size_y, size_z)
     """
+
     # Convert string values in JSON to floats
     min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
     max_pt = {k: float(v) for k, v in bbox_json["max"].items()}

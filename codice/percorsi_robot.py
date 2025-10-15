@@ -58,21 +58,20 @@ def scan_plant(posizione_piantina, bbox, gui: MultiTerminalGUI, plant_name: str,
     # Avvia la scansione in background
     threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
 
-def movement_first_quadrant(posizione_piantina, bbox, gui: MultiTerminalGUI, plant_name: str):
+def movement_first_quadrant(bbox, gui: MultiTerminalGUI, plant_name: str):
     """
     Esegue il movimento del braccio per la scansione della piantina nel primo quadrante.
     
     Args:
+        bbox: bounding box rigorosamente di tipo COCO, altrimenti non funziona
         center_x, center_y, center_z: Coordinate del centro della piantina
         distance: Distanza dal centro per i punti di scansione
     """
     
-    
-    # TODO: modificare come calcoliamo la boundig box nel modello (x,y,z,lx,ly,lz) rispeto al punto più vicino all'origine (0,0,0)
-    # IDEA: bbox = [posizione_piantina[0] - bbox[3]/2, posizione_piantina[1] - bbox[4]/2, posizione_piantina[2] - bbox[5]/2, bbox[3], bbox[4], bbox[5]]
-    # ALTRA IDEA: farlo direttamente in get bbox di camera handler, così da avere un modello standardizzato
-    
-    # TODO: calcolare la distanza dal centro della piantina, con z massimo per la piantina + 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi per i quattro altri punti
+    center_z_max = [bbox[0], bbox[1], bbox[5]]   #Prendo z max
+
+    coord_high_vision = [center_z_max[0], center_z_max[1], center_z_max[2], ]
+    # TODO: calcolare i 5 punti di scansione. Il primo lo si calcola prendendo il centro della piantina, ponendo z massimo per la piantina e aggiungendo 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi, prendendo z massimi e x e y rispettivamente massimi e minimi per i quattro altri punti
     
     # TODO: verificare che i punti siano raggiungibili, altrimenti avvisare l'utente e saltare quel punto
     
