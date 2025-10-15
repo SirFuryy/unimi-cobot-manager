@@ -28,6 +28,7 @@ def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
     
     global zed, pose
     if zed is None:
+        print("start in start")
         try:
             zed = zed_manager.zed_init(system_pose)
             pose = system_pose
@@ -62,6 +63,7 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
      
     global zed, pose
 
+
     if bbox_type not in ["c", "y", "p"]:
         exception_msg = f"Invalid bbox_type '{bbox_type}'. Must be 'c', 'y', or 'p'."
         gui.write_to_terminal(4, exception_msg)
@@ -69,6 +71,7 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
 
     # Initialize the ZED camera
     if zed is None:
+        print("scanand strat cam")
         start_cam(system_pose, gui)
         pose = system_pose
 
@@ -88,12 +91,24 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
     bbox = []
     for m in masks:
         bbxpts = find_plant.get_3d_bbox(m, point_cloud)
+        if bbxpts is None:
+            continue
+         # Convert to desired bbox format
         if bbox_type == "c":
-            bbox.append(get_bbox_COCO(bbxpts))
+            bbox_temp = get_bbox_COCO(bbxpts)
+            if bbox_temp is None:
+                continue
+            bbox.append([val * 1000 for val in bbox_temp])  # Convert to mm
         if bbox_type == "p":
-            bbox.append(get_bbox_PascalVOC(bbxpts))
+            bbox_temp = get_bbox_PascalVOC(bbxpts)
+            if bbox_temp is None:
+                continue
+            bbox.append([val * 1000 for val in bbox_temp])
         if bbox_type == "y":
-            bbox.append(get_bbox_YOLO(bbxpts))
+            bbox_temp = get_bbox_YOLO(bbxpts)
+            if bbox_temp is None:
+                continue
+            bbox.append([val * 1000 for val in bbox_temp])
 
     return bbox
 
@@ -116,6 +131,7 @@ def get_image_cam(gui: MultiTerminalGUI, save: bool = False):
     
     global zed
     if zed is None:
+        print("ZED camera is not initialized. Starting camera...")
         gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
         return
     
@@ -150,6 +166,7 @@ def record_cam(gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int
     
     global zed
     if zed is None:
+        print("record cam inizializza cam")
         gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
         return
 
@@ -182,25 +199,31 @@ def close_cam(gui: MultiTerminalGUI):
     else:
         gui.write_to_terminal(0, "ZED camera is not initialized.")
 
-def get_bbox_COCO(bbox_json: dict):
+def get_bbox_COCO(bbox: dict[str, dict[str, float]] | None):
     """
     Given a bounding box JSON with 'min' and 'max' points, compute the COCO format bbox as float values, such as:
         [x_min, y_min, z_min, width, depth, height].
     """
-    min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
-    max_pt = {k: float(v) for k, v in bbox_json["max"].items()}
+    if bbox is None:
+        print("bbox is None in get_bbox_COCO")
+        return None
+    min_pt = {k: float(v) for k, v in bbox["min"].items()}
+    max_pt = {k: float(v) for k, v in bbox["max"].items()}
     width = max_pt["x"] - min_pt["x"]
     depth = max_pt["y"] - min_pt["y"]
     height = max_pt["z"] - min_pt["z"]
     return [min_pt["x"], min_pt["y"], min_pt["z"], width, depth, height]
 
-def get_bbox_YOLO(bbox_json: dict):
+def get_bbox_YOLO(bbox: dict[str, dict[str, float]] | None):
     """
     Given a bounding box JSON with 'min' and 'max' points, compute the YOLO format bbox in absolute value as float values, such as:
         [center_x, center_y, center_z, width, depth, height].
     """
-    min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
-    max_pt = {k: float(v) for k, v in bbox_json["max"].items()}
+    if bbox is None:
+        print("bbox is None in get_bbox_YOLO")
+        return None
+    min_pt = {k: float(v) for k, v in bbox["min"].items()}
+    max_pt = {k: float(v) for k, v in bbox["max"].items()}
     center_x = (min_pt["x"] + max_pt["x"]) / 2.0
     center_y = (min_pt["y"] + max_pt["y"]) / 2.0
     center_z = (min_pt["z"] + max_pt["z"]) / 2.0
@@ -209,17 +232,20 @@ def get_bbox_YOLO(bbox_json: dict):
     height = max_pt["z"] - min_pt["z"]
     return [center_x, center_y, center_z, width, depth, height]
 
-def get_bbox_PascalVOC(bbox_json: dict):
+def get_bbox_PascalVOC(bbox: dict[str, dict[str, float]] | None):
     """
     Given a bounding box JSON with 'min' and 'max' points, compute the Pascal VOC format bbox as int values, such as:
         [x_min, y_min, z_min, x_max, y_max, z_max]
     """
-    min_pt = {k: int(float(v)) for k, v in bbox_json["min"].items()}
-    max_pt = {k: int(float(v)) for k, v in bbox_json["max"].items()}
+    if bbox is None:
+        print("bbox is None in get_bbox_PascalVOC")
+        return None
+    min_pt = {k: int(float(v)) for k, v in bbox["min"].items()}
+    max_pt = {k: int(float(v)) for k, v in bbox["max"].items()}
     return [min_pt["x"], min_pt["y"], min_pt["z"], max_pt["x"], max_pt["y"], max_pt["z"]]
 
 
-def get_dobot_front_face_center_and_size(bbox_json: dict):
+def get_dobot_front_face_center_and_size(bbox: dict):
     """
     Given a bounding box JSON with 'min' and 'max' points, compute:
     - min_pt, max_pt as float dicts
@@ -228,8 +254,8 @@ def get_dobot_front_face_center_and_size(bbox_json: dict):
     """
 
     # Convert string values in JSON to floats
-    min_pt = {k: float(v) for k, v in bbox_json["min"].items()}
-    max_pt = {k: float(v) for k, v in bbox_json["max"].items()}
+    min_pt = {k: float(v) for k, v in bbox["min"].items()}
+    max_pt = {k: float(v) for k, v in bbox["max"].items()}
 
     # Coordinates for 8 vertices of the box
     x_vals = [min_pt["x"], max_pt["x"]]

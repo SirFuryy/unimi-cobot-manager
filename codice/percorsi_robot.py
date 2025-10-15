@@ -5,7 +5,7 @@ import threading
 from typing import Tuple, List
 
 import camera_handler
-from codice import robot_controller
+import robot_controller
 from multi_terminal_gui import MultiTerminalGUI
 
 
@@ -16,82 +16,84 @@ def start_scanning(gui: MultiTerminalGUI, plant_name: str, frames_to_record: int
 
     gui.write_to_terminal(2, f"Scansione avviata per {plant_name} con {frames_to_record} fotogrammi.")
 
-def scan_plant(posizione_piantina, bbox, gui: MultiTerminalGUI, plant_name: str, frames_to_record: int = 300):
+def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
     Esegue la scansione completa della piantina muovendosi nei quattro punti.
     
     Args:
+        bbox: bounding box rigorosamente di tipo YOLO absolute (x_centro, y_centro, z_centro, larghezza, profondità, altezza con valori assoluti), altrimenti non funziona
         center_x, center_y, center_z: Coordinate del centro della piantina
         distance: Distanza dal centro per i punti di scansione
     """
     
-    if posizione_piantina is None:
+    if bbox is None:
         gui.write_to_terminal(2, "Posizione della piantina non trovata.")
         return
     
-    if posizione_piantina[2] < 0:   #Il braccio sarebbe sotto il piano di lavoro
+    if bbox[2] < 0:   #Il braccio sarebbe sotto il piano di lavoro
         gui.write_to_terminal(2, "Posizione della piantina non valida.")
         return
     
-    if not robot_controller.position_reachable(posizione_piantina):
+    if not robot_controller.position_reachable([bbox[0], bbox[1], bbox[5], -180.0000, 0.0000, 90.0000]):
         gui.write_to_terminal(2, "Posizione della piantina non raggiungibile.")
         return
     
-    if posizione_piantina[0] == 0 or posizione_piantina[1] == 0:   #Siamo su uno degli assi
+    if bbox[0] == 0 or bbox[1] == 0:   #Siamo su uno degli assi
         gui.write_to_terminal(2, "Posizione della piantina non valida.")
         return
-    
-    if posizione_piantina[0] > 0 & posizione_piantina[1] > 0:   #Primo quadrante
-        movement_first_quadrant(posizione_piantina, bbox, gui, plant_name)
-        return
-    
-    if posizione_piantina[0] < 0 & posizione_piantina[1] > 0:   #Secondo quadrante
+
+    if bbox[0] > 0 and bbox[1] > 0:   #Primo quadrante
+        movement_first_quadrant(bbox, plant_name, dashboard, move, gui, frames_to_record)
         return
 
-    if posizione_piantina[0] < 0 & posizione_piantina[1] < 0:   #Terzo quadrante
+
+    if bbox[0] < 0 and bbox[1] > 0:   #Secondo quadrante
         return
 
-    if posizione_piantina[0] > 0 & posizione_piantina[1] < 0:   #Quarto quadrante
+    if bbox[0] < 0 and bbox[1] < 0:   #Terzo quadrante
         return
-    
-    
-    # Avvia la scansione in background
-    threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
 
-def movement_first_quadrant(bbox, gui: MultiTerminalGUI, plant_name: str):
+    if bbox[0] > 0 and bbox[1] < 0:   #Quarto quadrante
+        return
+
+def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
     Esegue il movimento del braccio per la scansione della piantina nel primo quadrante.
     
     Args:
-        bbox: bounding box rigorosamente di tipo COCO, altrimenti non funziona
+        bbox: bounding box rigorosamente di tipo YOLO absolute (x_centro, y_centro, z_centro, larghezza, profondità, altezza con valori assoluti), altrimenti non funziona
         center_x, center_y, center_z: Coordinate del centro della piantina
         distance: Distanza dal centro per i punti di scansione
     """
     
-    center_z_max = [bbox[0], bbox[1], bbox[5]]   #Prendo z max
+    center_z_max = [bbox[0], bbox[1], bbox[2]+bbox[5]/2]   #Prendo z max
 
-    coord_high_vision = [center_z_max[0], center_z_max[1], center_z_max[2], ]
-    # TODO: calcolare i 5 punti di scansione. Il primo lo si calcola prendendo il centro della piantina, ponendo z massimo per la piantina e aggiungendo 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi, prendendo z massimi e x e y rispettivamente massimi e minimi per i quattro altri punti
+    coord_high_vision = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 90.0000]
     
-    # TODO: verificare che i punti siano raggiungibili, altrimenti avvisare l'utente e saltare quel punto
+    # Avvia la scansione in background
+    threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
+    
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_high_vision)
+    
+    robot_controller.RunPoint(dashboard, move, gui, [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000])
+    
+    # TODO: calcolare i 5 punti di scansione. Il primo lo si calcola prendendo il centro della piantina, ponendo z massimo per la piantina e aggiungendo 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi, prendendo z massimi e x e y rispettivamente massimi e minimi per i quattro altri punti
     
     # TODO: fare runpoint su quei punti nel mentre che la scannsione è già aprtita, bisogna capire quanto tempo ci mette la scansione e regolare i tempi
     
     # TODO: modificare le funzioni di robot controller per renderle più efficaci e togliere quella cagata di get angle se non è raggiungibile
     
-    # TODO: la funzione position reachable
     
     
-    
-    
+    """
     distance = 30  # Distanza dal centro per i punti di scansione
     
     # Calcola le coordinate dei quattro punti di scansione
     points = [
-        (posizione_piantina[0] - distance, posizione_piantina[1] + distance, posizione_piantina[2]),  # Punto in alto a sinistra
-        (posizione_piantina[0] + distance, posizione_piantina[1] + distance, posizione_piantina[2]),  # Punto in alto a destra
-        (posizione_piantina[0] + distance, posizione_piantina[1] - distance, posizione_piantina[2]),  # Punto in basso a destra
-        (posizione_piantina[0] - distance, posizione_piantina[1] - distance, posizione_piantina[2])   # Punto in basso a sinistra
+        (bbox[0] - distance, bbox[1] + distance, bbox[2]),  # Punto in alto a sinistra
+        (bbox[0] + distance, bbox[1] + distance, bbox[2]),  # Punto in alto a destra
+        (bbox[0] + distance, bbox[1] - distance, bbox[2]),  # Punto in basso a destra
+        (bbox[0] - distance, bbox[1] - distance, bbox[2])   # Punto in basso a sinistra
     ]
     
     # Salva la posa originale del robot
@@ -116,4 +118,4 @@ def movement_first_quadrant(bbox, gui: MultiTerminalGUI, plant_name: str):
         
         time.sleep(5)  # Attendi che la scansione sia completata (regola questo valore secondo necessità)
     
-    # Torna alla posa
+    # Torna alla posa"""

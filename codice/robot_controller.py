@@ -6,6 +6,8 @@ import time
 import sys
 import os
 
+import numpy as np
+
 # Percorso assoluto alla directory contenente dobot_api.py
 BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(BASE_PATH)
@@ -76,15 +78,7 @@ def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
     Returns a list of 6 joint angles.
     """
     # Parse coordinates from string if necessary
-    if isinstance(coord, str):
-        coord = coord.strip('{} ')
-        point_coord = [float(x.strip()) for x in coord.split(',')]
-    elif isinstance(coord, (list, tuple)):
-        # Convert all elements to float
-        point_coord = [float(x) for x in coord]
-    else:
-        gui.write_to_terminal(4, "Formato delle coordinate non corretto: deve essere str, list o tuple")
-        raise ValueError("Formato delle coordinate non corretto: deve essere str, list o tuple")
+    point_coord = _parse_target_coordinate(coord)
 
     # Inverse kinematics solution
     sol = dashboard.InverseSolution(point_coord[0], point_coord[1], point_coord[2],
@@ -99,6 +93,9 @@ def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
         else:
             gui.write_to_terminal(1, "Impossibile ottenere gli angoli correnti del robot")
             raise ValueError("Impossibile ottenere gli angoli correnti del robot")
+
+    gui.write_to_terminal(1, f"Soluzione inversa trovata per la posizione {point_coord}. soluzione: {sol}")
+
     # Extract angles from solution string
     match = re.search(r'\{([^}]*)\}', sol)
     if not match:
@@ -106,6 +103,7 @@ def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
         raise ValueError("Soluzione inversa non valida")
     values_str = match.group(1)
     joint_angles = [float(v.strip()) for v in values_str.split(',')]
+    gui.write_to_terminal(1, f"Angoli calcolati: {joint_angles}")
     return joint_angles
 
 def enable(dashboard: DobotApiDashboard):
@@ -120,21 +118,13 @@ def raggiungi_punto(dashboard: DobotApiDashboard, move: DobotApiMove, gui: Multi
     Coord can be string, list, or tuple as in ottieni_joint.
     Performs checks and uses RunPoint to execute move.
     """
+    
     # Parse target coordinates
-    if isinstance(coord, str):
-        coord = coord.strip('{} ')
-        point_coord = [float(x.strip()) for x in coord.split(',')]
-    elif isinstance(coord, (list, tuple)):
-        point_coord = [float(x) for x in coord]
-    else:
-        gui.write_to_terminal(4, "Formato delle coordinate non corretto: deve essere str, list o tuple")
-        raise ValueError("Formato delle coordinate non corretto: deve essere str, list o tuple")
+    point_coord = _parse_target_coordinate(coord)
 
     # If the Y coordinate is out of safe range, move in intermediate step
-    if point_coord[1] < -1000 or point_coord[1] > 1000:
-        point_coord[1] = 900.0
-        joints = ottieni_joint(dashboard, gui, point_coord)
-        RunPoint(dashboard, move, gui, joints)
+    if not position_reachable(coord):
+        gui.write_to_terminal(1, "Raggiungi punto segnala un errore: posizione non raggiungibile")
         return
 
     # Get current pose of robot
@@ -142,12 +132,37 @@ def raggiungi_punto(dashboard: DobotApiDashboard, move: DobotApiMove, gui: Multi
     if match:
         values_str = match.group(1)
         current_pos = [float(v.strip()) for v in values_str.split(',')]
+        # If X difference is small, skip move
+        if abs(point_coord[0] - current_pos[0]) < 30:
+            gui.write_to_terminal(1, "Differenza minima in X, non eseguo movimento.")
+            return
         # If Y difference is small, skip move
-        if abs(point_coord[1] - current_pos[1]) < 70:
+        if abs(point_coord[1] - current_pos[1]) < 30:
             gui.write_to_terminal(1, "Differenza minima in Y, non eseguo movimento.")
+            return
+        # If Z difference is small, skip move
+        if abs(point_coord[2] - current_pos[2]) < 30:
+            gui.write_to_terminal(1, "Differenza minima in Z, non eseguo movimento.")
             return
 
     # Compute joint angles for target
     joints = ottieni_joint(dashboard, gui, coord)
     # Move robot to target
     RunPoint(dashboard, move, gui, joints)
+
+def position_reachable(coord: list[float] | tuple[float] | str) -> bool:
+
+    point_coord = _parse_target_coordinate(coord)
+
+    point = np.power(point_coord[0],2) + np.power(point_coord[1],2) + np.power((point_coord[2]),2)
+    return point <= np.power(900, 2)
+
+def _parse_target_coordinate(coord: list[float] | tuple[float] | str) -> list[float]:
+    if isinstance(coord, str):
+        coord = coord.strip('{} ')
+        point_coord = [float(x.strip()) for x in coord.split(',')]
+    elif isinstance(coord, (list, tuple)):
+        point_coord = [float(x) for x in coord]
+    else:
+        raise ValueError("Formato delle coordinate non corretto: deve essere str, list o tuple")
+    return point_coord

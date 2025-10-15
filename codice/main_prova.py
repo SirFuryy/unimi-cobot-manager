@@ -8,6 +8,7 @@ import numpy as np
 
 #import camera_handler_mock as camera_handler
 import camera_handler
+import percorsi_robot
 import robot_controller
 import feed_thread
 from codice.multi_terminal_gui import MultiTerminalGUI
@@ -86,22 +87,23 @@ def find_plant(gui: MultiTerminalGUI):
     
     plants_number = 1
     
-    list_of_plants = camera_handler.use_cam(pose, plants_number, gui)
+    list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
 
     gui.write_to_terminal(2, f"Piante trovateeeeeeee: {list_of_plants}")
 
     return list_of_plants
     
-def scan_and_record(plant_position: dict, plant_name: str, gui: MultiTerminalGUI):
+def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
     global dashboard, move, feed, feedFour
     
     # arriva al punto iniziale di scansione
     start_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
     robot_controller.RunPoint(dashboard, move, gui, start_joints)
-
-    #chiama funzione di moviemento intorno alle piante
     
-    camera_handler.record_cam(gui, plant_name, frames=300)
+    plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere
+    percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=300)
+    
+    #camera_handler.record_cam(gui, plant_name, frames=300)
     
     gui.write_to_terminal(0, f"Scan and record for {plant_name} completed.")
 
