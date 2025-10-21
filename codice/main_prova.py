@@ -68,8 +68,15 @@ def avvia_programma(gui: MultiTerminalGUI):
 def find_plant(gui: MultiTerminalGUI):
     global dashboard, move, feed, feedFour
     
-    high_vision_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
-    HIGH_VISION_POSE = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
+    
+    # vecchia high vision joint = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
+    # nuovi [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
+    
+    # vecchia high vision cartesian = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
+    # nuovi [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
+
+    high_vision_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
+    HIGH_VISION_POSE = [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
     robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
     
     pose = Pose()
@@ -97,7 +104,7 @@ def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI
     global dashboard, move, feed, feedFour
     
     # arriva al punto iniziale di scansione
-    start_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
+    start_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
     robot_controller.RunPoint(dashboard, move, gui, start_joints)
     
     plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere

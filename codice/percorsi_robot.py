@@ -104,7 +104,7 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
     
     # return to ambient high vision point
-    robot_controller.RunPoint(dashboard, move, gui, [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000])
+    robot_controller.RunPoint(dashboard, move, gui, [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000])
     
     # TODO: calcolare i 5 punti di scansione. Il primo lo si calcola prendendo il centro della piantina, ponendo z massimo per la piantina e aggiungendo 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi, prendendo z massimi e x e y rispettivamente massimi e minimi per i quattro altri punti
     
