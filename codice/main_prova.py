@@ -61,7 +61,7 @@ def avvia_programma(gui: MultiTerminalGUI):
     initial_joints = [-90.0000, -75.0000, 138.0000, 27.0000, -90.0000, 180.0000]
     robot_controller.RunPoint(dashboard, move, gui, initial_joints)
     
-    camera_handler.start_cam(pose, gui)
+    #camera_handler.start_cam(pose, gui)   maybe poco utile
     
     gui.set_status("READY", "yellow")
 
@@ -71,8 +71,6 @@ def find_plant(gui: MultiTerminalGUI):
     high_vision_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
     HIGH_VISION_POSE = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
     robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
-
-    camera_handler.get_image_cam(gui, True)
     
     pose = Pose()
     pose.position.x = HIGH_VISION_POSE[0]/1000
@@ -85,11 +83,13 @@ def find_plant(gui: MultiTerminalGUI):
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
     
+    camera_handler.get_image_cam(pose, gui, True)
+    
     plants_number = 1
     
     list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
 
-    gui.write_to_terminal(2, f"Piante trovateeeeeeee: {list_of_plants}")
+    gui.write_to_terminal(0, f"Main - Piante trovate: {list_of_plants}")
 
     return list_of_plants
     
@@ -103,9 +103,9 @@ def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI
     plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere
     percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=300)
     
-    #camera_handler.record_cam(gui, plant_name, frames=300)
+    #camera_handler.record_cam(pose, gui, plant_name, frames=300)
     
-    gui.write_to_terminal(0, f"Scan and record for {plant_name} completed.")
+    gui.write_to_terminal(0, f"Main - Scan and record for {plant_name} completed.")
 
 def main():
     terminal_names = [
@@ -170,7 +170,7 @@ def main():
         gui.set_status("SCANNING...", "green")
         val = scan_entry.get().strip()
         if not val:
-            gui.write_to_terminal(3, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
+            gui.write_to_terminal(4, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
             gui.set_status("READY", "yellow")
             return
         try:
@@ -178,7 +178,7 @@ def main():
             n = max(0, int(numeric_val))  # Limita al minimo 0 pulsanti
             n = min(n, 10)  # Limita a massimo 10 pulsanti
             if n == 0:
-                gui.write_to_terminal(3, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
+                gui.write_to_terminal(4, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
                 gui.set_status("READY", "yellow")
                 return
 
@@ -191,7 +191,7 @@ def main():
                 # il codice poi dovrà eseguire la scansione e la registrazione per ogni piantina
 
                 if not list_of_plants:
-                    gui.write_to_terminal(3, "[Scan] ❌ Nessuna pianta trovata dalla camera")
+                    gui.write_to_terminal(4, "[Scan] ❌ Nessuna pianta trovata dalla camera")
                     gui.set_status("READY", "yellow")
                     return
                 
@@ -228,7 +228,7 @@ def main():
                             def handler(idx=idx):
                                 # da cambiare il parametro della funzione di scansione
                                 scan_and_record(list_of_plants[idx], f"plant_{idx+1}", gui)
-                                gui.write_to_terminal(3, f"[Scan] ✅ Pianta {idx+1} selezionata")
+                                gui.write_to_terminal(1, f"[Scan] ✅ Pianta {idx+1} selezionata")
                                 # Qui si possono eseguire azioni diverse per idx
                             return handler
 
@@ -267,7 +267,7 @@ def main():
             threading.Thread(target=scan_task, daemon=True).start()
             gui.set_status("READY", "yellow")
         except ValueError:
-            gui.write_to_terminal(3, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
+            gui.write_to_terminal(4, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
             gui.set_status("ERROR", "red")
             return
 

@@ -4,17 +4,18 @@ import time
 import threading
 from typing import Tuple, List
 
+from pose_class import Pose
 import camera_handler
 import robot_controller
 from multi_terminal_gui import MultiTerminalGUI
 
 
-def start_scanning(gui: MultiTerminalGUI, plant_name: str, frames_to_record: int = 300):
+def start_scanning(pose: Pose, gui: MultiTerminalGUI, plant_name: str, frames_to_record: int = 300):
     """Avvia la scansione in background."""
 
-    camera_handler.record_cam(gui, plant_name, frames_to_record)
+    camera_handler.record_cam(pose, gui, plant_name, frames_to_record)
 
-    gui.write_to_terminal(2, f"Scansione avviata per {plant_name} con {frames_to_record} fotogrammi.")
+    gui.write_to_terminal(2, f"Percorsi - Scansione avviata per {plant_name} con {frames_to_record} fotogrammi.")
 
 def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
@@ -27,19 +28,19 @@ def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, fr
     """
     
     if bbox is None:
-        gui.write_to_terminal(2, "Posizione della piantina non trovata.")
+        gui.write_to_terminal(1, "Percorsi - Il bounding box è None.")
         return
     
     if bbox[2] < 0:   #Il braccio sarebbe sotto il piano di lavoro
-        gui.write_to_terminal(2, "Posizione della piantina non valida.")
+        gui.write_to_terminal(1, "Percorsi - Coordinata Z della piantina non valida, valore negativo.")
         return
     
     if not robot_controller.position_reachable([bbox[0], bbox[1], bbox[5], -180.0000, 0.0000, 90.0000]):
-        gui.write_to_terminal(2, "Posizione della piantina non raggiungibile.")
+        gui.write_to_terminal(1, "Percorsi - Posizione della piantina non raggiungibile.")
         return
     
     if bbox[0] == 0 or bbox[1] == 0:   #Siamo su uno degli assi
-        gui.write_to_terminal(2, "Posizione della piantina non valida.")
+        gui.write_to_terminal(1, "Percorsi - Posizione della piantina non valida, si trova su uno degli assi.")
         return
 
     if bbox[0] > 0 and bbox[1] > 0:   #Primo quadrante
@@ -71,7 +72,8 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     coord_top_vision_plant = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 90.0000]
     
     # Avvia la scansione in background
-    threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
+    pose = Pose.crea_pose_from_coord(robot_controller.get_current_pose(dashboard))
+    threading.Thread(target=start_scanning, args=(pose, gui, plant_name, frames_to_record), daemon=True).start()
     
     # reach the top vision of the plant
     robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant)

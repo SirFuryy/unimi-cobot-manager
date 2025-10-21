@@ -64,12 +64,12 @@ def RunPoint(dashboard: DobotApiDashboard, move: DobotApiMove, gui: MultiTermina
                     arrived = False
                     break
             if arrived:
-                gui.write_to_terminal(1, "Target raggiunto!")
+                gui.write_to_terminal(1, "Controller - Target raggiunto!")
                 return  # target reached
         # Delay to prevent busy-wait
         time.sleep(0.5)
         if i > 20:
-            gui.write_to_terminal(1, "Target non raggiunto entro 10 secondi")
+            gui.write_to_terminal(1, "Controller - Target non raggiunto entro 10 secondi")
  
 def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
     """
@@ -85,13 +85,13 @@ def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
                                     point_coord[3], point_coord[4], point_coord[5], 0, 0)
     if sol.startswith('-'):
         # Error in inverse solution, get current angles instead
-        gui.write_to_terminal(1, "Errore nella soluzione inversa, utilizzo angoli attuali.")
+        gui.write_to_terminal(1, "Controller - Errore nella soluzione inversa, utilizzo angoli attuali.")
         match = re.search(r'\{([^}]*)\}', dashboard.GetAngle())
         if match:
             values_str = match.group(1)
             return [float(v.strip()) for v in values_str.split(',')]
         else:
-            gui.write_to_terminal(1, "Impossibile ottenere gli angoli correnti del robot")
+            gui.write_to_terminal(1, "Controller - Impossibile ottenere gli angoli correnti del robot")
             raise ValueError("Impossibile ottenere gli angoli correnti del robot")
 
     gui.write_to_terminal(1, f"Soluzione inversa trovata per la posizione {point_coord}. soluzione: {sol}")
@@ -99,7 +99,7 @@ def ottieni_joint(dashboard: DobotApiDashboard, gui: MultiTerminalGUI, coord):
     # Extract angles from solution string
     match = re.search(r'\{([^}]*)\}', sol)
     if not match:
-        gui.write_to_terminal(1, "Soluzione inversa non valida")
+        gui.write_to_terminal(1, "Controller - Soluzione inversa non valida")
         raise ValueError("Soluzione inversa non valida")
     values_str = match.group(1)
     joint_angles = [float(v.strip()) for v in values_str.split(',')]
@@ -124,7 +124,7 @@ def raggiungi_punto(dashboard: DobotApiDashboard, move: DobotApiMove, gui: Multi
 
     # If the Y coordinate is out of safe range, move in intermediate step
     if not position_reachable(coord):
-        gui.write_to_terminal(1, "Raggiungi punto segnala un errore: posizione non raggiungibile")
+        gui.write_to_terminal(1, "Controller - Raggiungi punto segnala un errore: posizione non raggiungibile")
         return
 
     # Get current pose of robot
@@ -132,23 +132,27 @@ def raggiungi_punto(dashboard: DobotApiDashboard, move: DobotApiMove, gui: Multi
     if match:
         values_str = match.group(1)
         current_pos = [float(v.strip()) for v in values_str.split(',')]
-        # If X difference is small, skip move
-        if abs(point_coord[0] - current_pos[0]) < 30:
-            gui.write_to_terminal(1, "Differenza minima in X, non eseguo movimento.")
-            return
-        # If Y difference is small, skip move
-        if abs(point_coord[1] - current_pos[1]) < 30:
-            gui.write_to_terminal(1, "Differenza minima in Y, non eseguo movimento.")
-            return
-        # If Z difference is small, skip move
-        if abs(point_coord[2] - current_pos[2]) < 30:
-            gui.write_to_terminal(1, "Differenza minima in Z, non eseguo movimento.")
+        # If difference is small, skip move
+        if abs(point_coord[0] - current_pos[0]) < 30 and abs(point_coord[1] - current_pos[1]) < 30 and abs(point_coord[2] - current_pos[2]) < 30:
+            gui.write_to_terminal(1, "Controller - Differenza minima della posizione, non eseguo movimento.")
             return
 
     # Compute joint angles for target
     joints = ottieni_joint(dashboard, gui, coord)
     # Move robot to target
     RunPoint(dashboard, move, gui, joints)
+    
+def get_current_pose(dashboard: DobotApiDashboard) -> list[float]:
+    """
+    Get the current Cartesian pose of the robot as a list of floats [x, y, z, rx, ry, rz].
+    """
+    match = re.search(r'\{([^}]*)\}', dashboard.GetPose())
+    if match:
+        values_str = match.group(1)
+        current_pose = [float(v.strip()) for v in values_str.split(',')]
+        return current_pose
+    else:
+        raise ValueError("Impossibile ottenere la posa corrente del robot")
 
 def position_reachable(coord: list[float] | tuple[float] | str) -> bool:
 

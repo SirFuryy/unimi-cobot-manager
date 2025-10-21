@@ -436,7 +436,8 @@ class MultiTerminalGUI:
             text: Testo da scrivere
         """
         if terminal_id in self.queues:
-            self.queues[terminal_id].put(text)
+            txt = f"+- {text} -+"
+            self.queues[terminal_id].put(txt)
     
     def _update_terminals(self):
         """Thread che aggiorna continuamente i terminali dalla coda."""
@@ -657,7 +658,7 @@ if __name__ == "__main__":
         gui.set_status("SCANNING...", "green")
         val = scan_entry.get().strip()
         if not val:
-            gui.write_to_terminal(3, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
+            gui.write_to_terminal(4, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
             gui.set_status("READY", "yellow")
             return
         try:
@@ -665,7 +666,7 @@ if __name__ == "__main__":
             n = max(0, int(numeric_val))  # Limita al minimo 0 pulsanti
             n = min(n, 10)  # Limita a massimo 10 pulsanti
             if n == 0:
-                gui.write_to_terminal(3, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
+                gui.write_to_terminal(4, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
                 gui.set_status("READY", "yellow")
                 return
 
@@ -705,7 +706,7 @@ if __name__ == "__main__":
                         def make_handler(idx):
                             def handler(idx=idx):
                                 # Funzione unica per ogni pulsante: personalizzabile
-                                gui.write_to_terminal(3, f"[Scan] ✅ Pianta {idx+1} selezionata")
+                                gui.write_to_terminal(1, f"[Scan] ✅ Pianta {idx+1} selezionata")
                                 # Qui si possono eseguire azioni diverse per idx
                             return handler
 
@@ -744,7 +745,7 @@ if __name__ == "__main__":
             threading.Thread(target=scan_task, daemon=True).start()
             gui.set_status("READY", "yellow")
         except ValueError:
-            gui.write_to_terminal(3, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
+            gui.write_to_terminal(4, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
             gui.set_status("ERROR", "red")
             return
 

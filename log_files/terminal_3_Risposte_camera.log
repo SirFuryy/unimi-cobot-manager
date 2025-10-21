@@ -1,2 +1,12 @@
-=== Risposte_camera - Started: 2025-10-15 19:23:25.252442 ===
+=== Risposte_camera - Started: 2025-10-21 17:20:59.360551 ===
 
++- ZED camera initialized. -+
++- Image captured and saved from ZED camera. -+
++- ZED camera closed. -+
++- ZED camera initialized. -+
++- Image captured and saved from ZED camera. -+
++- ZED camera closed. -+
++- Piante trovate: [[286.56958416104317, 615.7284080982208, -132.82196410000324, 733.1594452261925, 157.3236584663391, 301.549818366766]] -+
++- ZED camera is not initialized. -+
++- Point cloud for plant_1 recorded and saved. -+
++- Percorsi - Scansione avviata per plant_1 con 300 fotogrammi. -+
