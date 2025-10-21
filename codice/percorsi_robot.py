@@ -68,13 +68,40 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     
     center_z_max = [bbox[0], bbox[1], bbox[2]+bbox[5]/2]   #Prendo z max
 
-    coord_high_vision = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 90.0000]
+    coord_top_vision_plant = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 90.0000]
     
     # Avvia la scansione in background
     threading.Thread(target=start_scanning, args=(gui, plant_name, frames_to_record), daemon=True).start()
     
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_high_vision)
+    # reach the top vision of the plant
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant)
+    time.sleep(0.1)  # Attendi un secondo per permettere la scansione
+
+    # move to first scanning point
+    coord_right_vision_plant = [center_z_max[0], center_z_max[1]+240.0, center_z_max[2]+285.0, -141.0000, 0.0000, 180.0000]
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_right_vision_plant)
+    time.sleep(0.1)  # Attendi un secondo per permettere la scansione
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+
+    # move to second scanning point
+    coord_front_vision_plant = [center_z_max[0]+214.0, center_z_max[1], center_z_max[2]+305.0, -151.0000, 0.0000, 90.0000]
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_front_vision_plant)
+    time.sleep(0.1)  # Attendi un secondo per permettere la scansione
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+
+    # move to third scanning point
+    coord_left_vision_plant = [center_z_max[0], center_z_max[1]-246.0, center_z_max[2]+285.0, -141.0000, 0.0000, 0.0000]
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_left_vision_plant)
+    time.sleep(0.1)  # Attendi un secondo per permettere la scansione
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+
+    # move to fourth scanning point
+    coord_back_vision_plant = [center_z_max[0]-243.0, center_z_max[1], center_z_max[2]+285.0, -141.0000, 0.0000, -90.0000]
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_back_vision_plant)
+    time.sleep(0.1)  # Attendi un secondo per permettere la scansione
+    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
     
+    # return to ambient high vision point
     robot_controller.RunPoint(dashboard, move, gui, [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000])
     
     # TODO: calcolare i 5 punti di scansione. Il primo lo si calcola prendendo il centro della piantina, ponendo z massimo per la piantina e aggiungendo 35 cm per stare larhi. Poi farlo in diagonale di 60 gradi, prendendo z massimi e x e y rispettivamente massimi e minimi per i quattro altri punti
