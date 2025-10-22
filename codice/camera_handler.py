@@ -112,9 +112,6 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
             
     gui.write_to_terminal(2, f"Piante trovate: {bbox}")
 
-    # Close the ZED camera after processing
-    close_cam(gui)
-
     return bbox
 
 def get_image_cam(system_pose: Pose, gui: MultiTerminalGUI, save: bool = False):
