@@ -10,7 +10,7 @@ from typing import Tuple, List
 
 global zed, pose  # Global variable to hold the ZED camera instance and the original pose, setted to None initially
 zed = None
-pose = None
+pose = Pose()
 
 def start_cam(system_pose: Pose, gui: MultiTerminalGUI):
     """
@@ -71,12 +71,12 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
 
     # Initialize the ZED camera
     if zed is None:
-        print("scanand strat cam")
+        print("scanand start cam")
         start_cam(system_pose, gui)
         pose = system_pose
 
     # Capture the environment with the ZED camera
-    image, depth_map, normal_map, point_cloud = get_image_cam(gui, save=True)
+    image, depth_map, normal_map, point_cloud = get_image_cam(pose, gui, save=True)
 
     # Filter the plants from the background
     mask = find_plant.filter_plants(image, save_mask=True)
@@ -109,10 +109,12 @@ def scan_and_find_plants(system_pose: Pose, plants_number: int, gui: MultiTermin
             if bbox_temp is None:
                 continue
             bbox.append([val * 1000 for val in bbox_temp])
+            
+    gui.write_to_terminal(2, f"Piante trovate: {bbox}")
 
     return bbox
 
-def get_image_cam(gui: MultiTerminalGUI, save: bool = False):
+def get_image_cam(system_pose: Pose, gui: MultiTerminalGUI, save: bool = False):
     """
     Captures an image and related data from the ZED camera.
     This function retrieves an image, depth map, normal map, and point cloud 
@@ -131,19 +133,21 @@ def get_image_cam(gui: MultiTerminalGUI, save: bool = False):
     
     global zed
     if zed is None:
-        print("ZED camera is not initialized. Starting camera...")
-        gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
-        return
+        print("getimage start cam")
+        start_cam(system_pose, gui)
+        pose = system_pose
     
     try:
-        image, depth_map, normal_map, point_cloud = zed_manager.get_zed_image(zed, save=False)
+        image, depth_map, normal_map, point_cloud = zed_manager.get_zed_image(zed, save=save)
         gui.write_to_terminal(2, f"Image captured and saved from ZED camera.")
+        close_cam(gui)  #close cam after getting image
         return image, depth_map, normal_map, point_cloud
     except Exception as e:
         gui.write_to_terminal(4, f"Failed to get image from ZED camera: {e}")
-        return None
+        close_cam(gui) #close cam if error
+        raise e
 
-def record_cam(gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int = 300):
+def record_cam(system_pose: Pose, gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int = 300):
     """
     Records a point cloud using the ZED camera and saves it to a file.
     This function interacts with a ZED camera to capture a point cloud for a specified plant.
@@ -163,12 +167,6 @@ def record_cam(gui: MultiTerminalGUI, plant_name: str = "piantina1", frames: int
         - The function uses the `create_plc.record_and_save` method to handle the recording and saving
           of the point cloud data.
     """
-    
-    global zed
-    if zed is None:
-        print("record cam inizializza cam")
-        gui.write_to_terminal(0, "ZED camera is not initialized. Please start the camera first.")
-        return
 
     try:
         create_plc.record_and_save(plant_name=plant_name, frames=frames)
@@ -195,9 +193,9 @@ def close_cam(gui: MultiTerminalGUI):
     if zed is not None:
         zed.close()
         zed = None
-        gui.write_to_terminal(0, "ZED camera closed.")
+        gui.write_to_terminal(2, "ZED camera closed.")
     else:
-        gui.write_to_terminal(0, "ZED camera is not initialized.")
+        gui.write_to_terminal(2, "ZED camera is not initialized.")
 
 def get_bbox_COCO(bbox: dict[str, dict[str, float]] | None):
     """

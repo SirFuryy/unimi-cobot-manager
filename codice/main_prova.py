@@ -61,18 +61,39 @@ def avvia_programma(gui: MultiTerminalGUI):
     initial_joints = [-90.0000, -75.0000, 138.0000, 27.0000, -90.0000, 180.0000]
     robot_controller.RunPoint(dashboard, move, gui, initial_joints)
     
-    camera_handler.start_cam(pose, gui)
+    #camera_handler.start_cam(pose, gui)   maybe poco utile
     
     gui.set_status("READY", "yellow")
 
-def find_plant(gui: MultiTerminalGUI):
+def find_plant(plants_number: int, gui: MultiTerminalGUI):
     global dashboard, move, feed, feedFour
     
-    high_vision_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
-    HIGH_VISION_POSE = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
-    robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
+    
+    # vecchia high vision joint = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
+    # nuovi [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
+    
+    # vecchia high vision cartesian = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
+    # nuovi [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
 
-    camera_handler.get_image_cam(gui, True)
+    high_vision_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
+    HIGH_VISION_POSE = [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
+    robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
+    
+    """ joint alti per secondo quadrante
+    prima j1 a -10 (giro per avere spazio)
+    poi j2 e j3 a 44 e -94 (j2 si sposta di 90 gradi in senso orario, j3 si abbassa di 180 gradi percvhé il braccio ora è girato)
+    poi j5 a 90 (così torna a guardare dritto)
+    poi j4 a -20 (così si avvicina un po')
+    poi j6 a 180
+    poi finisco il movimento di j1 a 90
+    [90.0000, 44.0000, -94.0000, -18.0000, 94.0000, 184.0000] possibilità 1
+    [105.0000, 44.0000, -94.0000, -29.0000, 90.0000, 192.0000] esatto opposto
+    [98.0000, 44.0000, -94.0000, -19.0000, 90.0000, 191.0000] possibilità convincente
+
+    [103.0000, 39.0000, -86.0000, -24.0000, 88.0000, 195.0000] possibilità convincente
+
+    Pose [107.0000, 162.0000, 659.0000, 161.0000, -3.0000, 178.0000]
+    """
     
     pose = Pose()
     pose.position.x = HIGH_VISION_POSE[0]/1000
@@ -85,27 +106,28 @@ def find_plant(gui: MultiTerminalGUI):
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
     
-    plants_number = 1
-    
     list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
 
-    gui.write_to_terminal(2, f"Piante trovateeeeeeee: {list_of_plants}")
+    print(len(list_of_plants))
+    gui.write_to_terminal(0, f"Main - Piante trovate: {list_of_plants}")
 
     return list_of_plants
     
 def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
+    print("dentro scan e record")
     global dashboard, move, feed, feedFour
     
-    # arriva al punto iniziale di scansione
-    start_joints = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
-    robot_controller.RunPoint(dashboard, move, gui, start_joints)
+    gui.write_to_terminal(0, f"Main - Start scan and record for {plant_name}.")
     
-    plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere
+    #qua c'era il comando che portava il robot in posizione di scansione generale
+    
+    #plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere
     percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=300)
     
-    #camera_handler.record_cam(gui, plant_name, frames=300)
+    gui.write_to_terminal(0, f"Main - Scan and record for {plant_name} completed.")
     
-    gui.write_to_terminal(0, f"Scan and record for {plant_name} completed.")
+def sar(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
+    threading.Thread(target=scan_and_record, args=(plant_position, plant_name, gui), daemon=True).start()
 
 def main():
     terminal_names = [
@@ -170,7 +192,7 @@ def main():
         gui.set_status("SCANNING...", "green")
         val = scan_entry.get().strip()
         if not val:
-            gui.write_to_terminal(3, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
+            gui.write_to_terminal(4, "[Scan] ⚠️ Valore vuoto: inserire un valore prima di eseguire la scansione")
             gui.set_status("READY", "yellow")
             return
         try:
@@ -178,12 +200,12 @@ def main():
             n = max(0, int(numeric_val))  # Limita al minimo 0 pulsanti
             n = min(n, 10)  # Limita a massimo 10 pulsanti
             if n == 0:
-                gui.write_to_terminal(3, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
+                gui.write_to_terminal(4, "[Scan] ℹ️ Nessun pulsante da generare (valore 0)")
                 gui.set_status("READY", "yellow")
                 return
 
             def scan_task():
-                list_of_plants = find_plant(gui)    #Restituisce un dizionario con punti estremi delle varie boundyng box
+                list_of_plants = find_plant(n, gui)    #Restituisce un dizionario con punti estremi delle varie boundyng box
                 
                 # codice per identificare il punto centrale della piantina
                 #restituisce una lista di liste, dove ogni lista interna è l'insieme delle coordinate delle posizioni delle piantine
@@ -191,7 +213,7 @@ def main():
                 # il codice poi dovrà eseguire la scansione e la registrazione per ogni piantina
 
                 if not list_of_plants:
-                    gui.write_to_terminal(3, "[Scan] ❌ Nessuna pianta trovata dalla camera")
+                    gui.write_to_terminal(4, "[Scan] ❌ Nessuna pianta trovata dalla camera")
                     gui.set_status("READY", "yellow")
                     return
                 
@@ -224,11 +246,19 @@ def main():
 
                     gui.scan_handlers = {}
                     for i in range(n):
-                        def make_handler(idx):
+                        def make_handler(idx): 
+                            print(f"creando pulsante con pianta {idx}: {list_of_plants[idx]}")
                             def handler(idx=idx):
                                 # da cambiare il parametro della funzione di scansione
-                                scan_and_record(list_of_plants[idx], f"plant_{idx+1}", gui)
-                                gui.write_to_terminal(3, f"[Scan] ✅ Pianta {idx+1} selezionata")
+                                plant_position = list_of_plants[idx]
+                                if idx == 0:
+                                    plant_position = [300.0, 300.0, 200.0, 100.0, 100.0, 100.0]
+                                if idx == 1:
+                                    plant_position = [-300.0, 300.0, 200.0, 100.0, 100.0, 100.0]
+                                
+                                #qua al posto di plant_position creato per test bisogna usare list_of_plants[idx]
+                                sar(plant_position, f"plant_{idx+1}", gui)
+                                gui.write_to_terminal(1, f"[Scan] ✅ Pianta {idx+1} selezionata")
                                 # Qui si possono eseguire azioni diverse per idx
                             return handler
 
@@ -259,7 +289,7 @@ def main():
                         
                         btn.bind("<Enter>", on_enter)
                         btn.bind("<Leave>", on_leave)
-                        gui.scan_handlers[i] = make_handler(i)
+                        #gui.scan_handlers[i] = make_handler(i)     #se attivo svolge il lavoro una seconda volta inutilmente
 
                 # Creazione dei widget deve avvenire nel thread principale
                 gui.root.after(0, create_buttons)
@@ -267,15 +297,17 @@ def main():
             threading.Thread(target=scan_task, daemon=True).start()
             gui.set_status("READY", "yellow")
         except ValueError:
-            gui.write_to_terminal(3, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
+            gui.write_to_terminal(4, f"[Scan] ❌ Valore non valido: '{val}' (serve un numero)")
             gui.set_status("ERROR", "red")
             return
+
+    i = threading.Thread(target=start_scan, args=(), daemon=True)
 
     # Bottone per lanciare la scansione con stile
     scan_button = gui._create_styled_button(
         gui.control_container,
         text="📡 ESEGUI SCANSIONE",
-        command=start_scan,
+        command=i.start,
         width=20,
         color_type='primary'
     )
