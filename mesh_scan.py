@@ -198,6 +198,7 @@ class Object3DReconstructor:
         
         return self.mesh
     
+    
     def crop_mesh_to_object(self, camera_distance_m=0.35, 
                            object_size_m=None,
                            crop_margin_m=0.10):

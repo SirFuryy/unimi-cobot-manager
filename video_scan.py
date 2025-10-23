@@ -331,6 +331,7 @@ def main():
             # Modalità libera
             scanner.run_freeform_scan()
         else:
+            
             # Modalità guidata (default)
             posizioni_custom = [
                 "FRONTALE - inquadra l'oggetto di fronte",
