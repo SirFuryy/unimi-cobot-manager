@@ -81,7 +81,7 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     
     # Avvia la scansione in background
     pose = Pose.crea_pose_from_coord(robot_controller.get_current_pose(dashboard))
-    threading.Thread(target=start_scanning, args=(pose, gui, plant_name, frames_to_record), daemon=True).start()
+    #threading.Thread(target=start_scanning, args=(pose, gui, plant_name, frames_to_record), daemon=True).start()
     
     # reach the top vision of the plant
     gui.write_to_terminal(1, "Pronto per raggiungere top.")

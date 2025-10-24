@@ -18,11 +18,11 @@ class ContinuousObjectScanner:
         
         # Parametri di inizializzazione
         init_params = sl.InitParameters()
-        init_params.camera_resolution = sl.RESOLUTION.HD1080
+        init_params.camera_resolution = sl.RESOLUTION.HD2K
         init_params.camera_fps = 30
-        init_params.depth_mode = sl.DEPTH_MODE.ULTRA
+        init_params.depth_mode = sl.DEPTH_MODE.NEURAL_PLUS
         init_params.coordinate_units = sl.UNIT.METER
-        init_params.depth_minimum_distance = 0.3
+        init_params.depth_minimum_distance = 0.2
         
         # Apri la camera
         err = self.zed.open(init_params)
@@ -32,7 +32,14 @@ class ContinuousObjectScanner:
         
         # Parametri runtime
         self.runtime_params = sl.RuntimeParameters()
-        self.runtime_params.sensing_mode = sl.SENSING_MODE.FILL
+        # Imposta il sensing_mode solo se l'enum è disponibile nella versione di pyzed.sl usata,
+        # alcune versioni non espongono SENSING_MODE e questo evitera' l'AttributeError.
+        if hasattr(sl, "SENSING_MODE"):
+            try:
+                self.runtime_params.sensing_mode = sl.SENSING_MODE.FILL
+            except Exception:
+                # In caso di nomi diversi o altri errori, non forzare l'impostazione
+                pass
         
         # Matrici per immagini
         self.image_left = sl.Mat()
@@ -356,3 +363,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

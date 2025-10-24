@@ -106,7 +106,9 @@ def find_plant(plants_number: int, gui: MultiTerminalGUI):
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
     
-    list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
+    #list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
+
+    list_of_plants = [[300.0, 300.0, 200.0, 100.0, 100.0, 100.0], [300.0, 300.0, 200.0, 100.0, 100.0, 100.0]]
 
     print(len(list_of_plants))
     gui.write_to_terminal(0, f"Main - Piante trovate: {list_of_plants}")
