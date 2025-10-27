@@ -73,7 +73,7 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     
     center_z_max = [bbox[0], bbox[1], bbox[2]+bbox[5]/2]   #Prendo z max
 
-    coord_top_vision_plant = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 90.0000]
+    coord_top_vision_plant = [center_z_max[0], center_z_max[1], center_z_max[2]+350.0, -180.0000, 0.0000, 180.0000]
     
     # arriva al punto iniziale di scansione generale
     start_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
