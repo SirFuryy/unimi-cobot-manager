@@ -16,3 +16,12 @@
 
 13/10/25
        1. Riprendo il mio lavoro con millemila cose nuove
+
+24/10
+       TODO LIST:    Fixare threading da chiudere se no non posso ricalcolare il numero di piante
+                     Rimuovere ripetizioni.
+                     tarare tempo mesh pianta
+                     Sistemare come vengono stampati i commenti
+                     Backgroundizzare tutto
+                     Uniformare codice e scrivere commenti in inglese
+                     Documentazione completa
