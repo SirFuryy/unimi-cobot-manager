@@ -53,7 +53,9 @@ def avvia_programma(gui: MultiTerminalGUI):
     print("Abilitazione completata :)")
     gui.write_to_terminal(0, "Abilitazione completata :)")
     try:
-        dashboard.SpeedFactor(40)
+        dashboard.SpeedFactor(30)
+        dashboard.SpeedJ(40)
+        gui.write_to_terminal(0, "Velocità settata")
     except Exception:
         pass
 

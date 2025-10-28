@@ -1,11 +1,12 @@
-=== Stato_robot - Started: 2025-10-24 17:00:37.000086 ===
+=== Stato_robot - Started: 2025-10-27 13:06:09.466675 ===
 
 +- Connessione al robot riuscita! -+
 +- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
 +- Inizio abilitazione... -+
 +- Abilitazione completata :) -+
++- Velocità settata -+
 +- Main - Piante trovate: [[300.0, 300.0, 200.0, 100.0, 100.0, 100.0], [300.0, 300.0, 200.0, 100.0, 100.0, 100.0]] -+
 +- Main - Start scan and record for plant_1. -+
 +- Main - Scan and record for plant_1 completed. -+
-+- Main - Start scan and record for plant_2. -+
-+- Main - Scan and record for plant_2 completed. -+
++- Main - Start scan and record for plant_1. -+
++- Main - Scan and record for plant_1 completed. -+
