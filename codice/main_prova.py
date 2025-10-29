@@ -6,21 +6,25 @@ import tkinter as tk
 from transforms3d.euler import euler2quat
 import numpy as np
 
-#import camera_handler_mock as camera_handler
-import camera_handler
+from camera_handler import CameraHandler
 import percorsi_robot
 import robot_controller
 import feed_thread
 from codice.multi_terminal_gui import MultiTerminalGUI
 from pose_class import Pose
 
-global dashboard, move, feed, feedFour
+global dashboard, move, feed, feedFour, zed
 
 def avvia_programma(gui: MultiTerminalGUI):
-    global dashboard, move, feed, feedFour
+    global dashboard, move, feed, feedFour, zed
     
     # Initialize robot connection
     dashboard, move, feed, feedFour = robot_controller.ConnessioneStandard(gui)
+    gui.write_to_terminal(0, f"Connessione al robot eseguita!")
+    
+    # Initialize camera
+    zed = CameraHandler()
+    gui.write_to_terminal(2, f"Creazione della camera eseguita!")
 
     # Start feedback threads
     thread_feed = threading.Thread(target=feed_thread.GetFeed200ms, args=(feedFour,), name="FeedbackThread")
@@ -43,15 +47,12 @@ def avvia_programma(gui: MultiTerminalGUI):
     pose.orientation.y = quat[2]
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
-    print("Coordinate salvate")
     gui.write_to_terminal(0, f"Coordinate salvate: {CORD_RIPOSO}")
 
     # Enable robot and set speed
-    print("Inizio abilitazione...")
-    gui.write_to_terminal(0, "Inizio abilitazione...")
     robot_controller.enable(dashboard)
-    print("Abilitazione completata :)")
     gui.write_to_terminal(0, "Abilitazione completata :)")
+    
     try:
         dashboard.SpeedFactor(30)
         dashboard.SpeedJ(40)
@@ -63,19 +64,10 @@ def avvia_programma(gui: MultiTerminalGUI):
     initial_joints = [-90.0000, -75.0000, 138.0000, 27.0000, -90.0000, 180.0000]
     robot_controller.RunPoint(dashboard, move, gui, initial_joints)
     
-    #camera_handler.start_cam(pose, gui)   maybe poco utile
-    
     gui.set_status("READY", "yellow")
 
 def find_plant(plants_number: int, gui: MultiTerminalGUI):
-    global dashboard, move, feed, feedFour
-    
-    
-    # vecchia high vision joint = [-90.0000, -46.0000, 86.0000, 28.0000, -90.0000, 180.0000]
-    # nuovi [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
-    
-    # vecchia high vision cartesian = [-143.0000, 67.2000, 662.3500, 158.0000, 0.0000, -179.3000]
-    # nuovi [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
+    global dashboard, move, feed, feedFour, zed
 
     high_vision_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
     HIGH_VISION_POSE = [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
@@ -108,30 +100,45 @@ def find_plant(plants_number: int, gui: MultiTerminalGUI):
     pose.orientation.z = quat[3]
     pose.orientation.w = quat[0]
     
-    #list_of_plants = camera_handler.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
+    try:
+        list_of_plants = zed.scan_and_find_plants(pose, plants_number, gui, bbox_type="y")
+    except Exception as e:
+       gui.write_to_terminal(4, f"Errore durante la scansione: {e}")
+       return []
 
     list_of_plants = [[300.0, 300.0, 200.0, 100.0, 100.0, 100.0], [300.0, 300.0, 200.0, 100.0, 100.0, 100.0]]
-
-    print(len(list_of_plants))
-    gui.write_to_terminal(0, f"Main - Piante trovate: {list_of_plants}")
 
     return list_of_plants
     
 def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
-    print("dentro scan e record")
     global dashboard, move, feed, feedFour
     
     gui.write_to_terminal(0, f"Main - Start scan and record for {plant_name}.")
     
-    #qua c'era il comando che portava il robot in posizione di scansione generale
-    
-    #plant_position = [300.0, 300.0, 50.0, 100.0, 100.0, 100.0]   #Per test, da togliere
-    percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=300)
+    # Frame necessari: 630. Attualmente il movimento completo con questa velocità è di 42 secondi
+    percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=630)
     
     gui.write_to_terminal(0, f"Main - Scan and record for {plant_name} completed.")
     
-def sar(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
+def _sar(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
     threading.Thread(target=scan_and_record, args=(plant_position, plant_name, gui), daemon=True).start()
+    
+def _make_thread_runner(target, gui, *args, daemon=True):
+    """
+    Restituisce una funzione che gestisce il thread in modo sicuro,
+    ricreandolo solo quando quello precedente è terminato.
+    """
+    thread_container : dict[str, threading.Thread | None] = {"thread": None}  # usiamo un dict per mutabilità
+
+    def runner():
+        # Se non esiste thread o è terminato, creane uno nuovo
+        if thread_container["thread"] is None or not thread_container["thread"].is_alive():
+            thread_container["thread"] = threading.Thread(target=target, args=args, daemon=daemon)
+            thread_container["thread"].start()
+        else:
+            gui.write_to_terminal(4, "Il thread è già in esecuzione.")
+
+    return runner
 
 def main():
     terminal_names = [
@@ -145,15 +152,12 @@ def main():
     
     # Inizializza GUI
     gui = MultiTerminalGUI(terminal_titles=terminal_names)
-    
-    t = threading.Thread(target=avvia_programma, args=(gui,), daemon=True)
-    
+
     # Button to start the robot
     start_button = gui._create_styled_button(
         gui.control_container,
         text="▶️ AVVIA PROGRAMMA",
-        #command=lambda: avvia_programma(gui),
-        command=lambda: t.start(),
+        command= _make_thread_runner(avvia_programma, gui, gui),
         width=20,
         color_type='success'
     )
@@ -209,15 +213,10 @@ def main():
                 return
 
             def scan_task():
-                list_of_plants = find_plant(n, gui)    #Restituisce un dizionario con punti estremi delle varie boundyng box
-                
-                # codice per identificare il punto centrale della piantina
-                #restituisce una lista di liste, dove ogni lista interna è l'insieme delle coordinate delle posizioni delle piantine
-                
-                # il codice poi dovrà eseguire la scansione e la registrazione per ogni piantina
+                list_of_plants = find_plant(n, gui)    #Restituisce un dizionario con punti estremi delle varie bounding box
 
-                if not list_of_plants:
-                    gui.write_to_terminal(4, "[Scan] ❌ Nessuna pianta trovata dalla camera")
+                if not list_of_plants or len(list_of_plants) == 0:
+                    gui.write_to_terminal(4, "[Scan] ❌ Nessuna pianta trovata dalla camera oppure errore occorso nella scansione")
                     gui.set_status("READY", "yellow")
                     return
                 
@@ -261,7 +260,7 @@ def main():
                                     plant_position = [-300.0, 300.0, 200.0, 100.0, 100.0, 100.0]
                                 
                                 #qua al posto di plant_position creato per test bisogna usare list_of_plants[idx]
-                                sar(plant_position, f"plant_{idx+1}", gui)
+                                _sar(plant_position, f"plant_{idx+1}", gui)
                                 gui.write_to_terminal(1, f"[Scan] ✅ Pianta {idx+1} selezionata")
                                 # Qui si possono eseguire azioni diverse per idx
                             return handler
@@ -321,8 +320,10 @@ def main():
     gui.run()
 
     # On exit, disable the robot
-    dashboard.DisableRobot()
-    print("Disabilitazione completata :)")
+    if dashboard is not None:
+        dashboard.DisableRobot()
+    
+    gui.write_to_terminal(0, "Disabilitazione completata :)")
 
 if __name__ == "__main__":
     main()

@@ -81,55 +81,51 @@ class CameraHandler:
             gui.write_to_terminal(4, f"Invalid bbox_type '{bbox_type}'. Must be 'c', 'y', or 'p'.")
             raise ValueError(f"Invalid bbox_type '{bbox_type}'.")
 
-        try:
-            # Initialize the ZED camera
-            if self.zed is None:
-                self.start_cam(system_pose, gui)
+        # Initialize the ZED camera
+        if self.zed is None:
+            self.start_cam(system_pose, gui)
 
-            # Capture the environment with the ZED camera
-            image, depth_map, normal_map, point_cloud = self.get_image_cam(system_pose, gui, save=True)
+        # Capture the environment with the ZED camera
+        image, depth_map, normal_map, point_cloud = self.get_image_cam(system_pose, gui, save=True)
 
-            # Filter the plants from the background
-            mask = find_plant.filter_plants(image, save_mask=True)
-            
-            # Divide the plants into clusters
-            masks, bounding_boxes = find_plant.segment_plants(mask, plants_number)
-            
-            # Save clustered image for visualization
-            find_plant.save_clustered_image(image, bounding_boxes)
+        # Filter the plants from the background
+        mask = find_plant.filter_plants(image, save_mask=True)
+        
+        # Divide the plants into clusters
+        masks, bounding_boxes = find_plant.segment_plants(mask, plants_number)
+        
+        # Save clustered image for visualization
+        find_plant.save_clustered_image(image, bounding_boxes)
 
-            # Extract the 3D points from the clusters
-            bbox_list: List[List[float]] = []
-            for m in masks:
-                bbxpts = find_plant.get_3d_bbox(m, point_cloud)
-                if bbxpts is None:
+        # Extract the 3D points from the clusters
+        bbox_list: List[List[float]] = []
+        for m in masks:
+            bbxpts = find_plant.get_3d_bbox(m, point_cloud)
+            if bbxpts is None:
+                continue
+
+            # Convert to desired bbox format
+            if bbox_type == "c":
+                bbox_temp = self.get_bbox_COCO(bbxpts)
+                if bbox_temp is None:
                     continue
+                bbox_list.append([val * 1000 for val in bbox_temp])  # Convert to mm
 
-                # Convert to desired bbox format
-                if bbox_type == "c":
-                    bbox_temp = self.get_bbox_COCO(bbxpts)
-                    if bbox_temp is None:
-                        continue
-                    bbox_list.append([val * 1000 for val in bbox_temp])  # Convert to mm
+            elif bbox_type == "p":
+                bbox_temp = self.get_bbox_PascalVOC(bbxpts)
+                if bbox_temp is None:
+                    continue
+                bbox_list.append([val * 1000 for val in bbox_temp])
 
-                elif bbox_type == "p":
-                    bbox_temp = self.get_bbox_PascalVOC(bbxpts)
-                    if bbox_temp is None:
-                        continue
-                    bbox_list.append([val * 1000 for val in bbox_temp])
+            elif bbox_type == "y":
+                bbox_temp = self.get_bbox_YOLO(bbxpts)
+                if bbox_temp is None:
+                    continue
+                bbox_list.append([val * 1000 for val in bbox_temp])
 
-                elif bbox_type == "y":
-                    bbox_temp = self.get_bbox_YOLO(bbxpts)
-                    if bbox_temp is None:
-                        continue
-                    bbox_list.append([val * 1000 for val in bbox_temp])
-
-            gui.write_to_terminal(2, f"Piante trovate: {bbox_list}")
-            
-            return bbox_list
-        except Exception as e:
-            gui.write_to_terminal(4, f"Failed to scan and find plants: {e}")
-            raise e
+        gui.write_to_terminal(2, f"Piante trovate: {bbox_list}")
+        
+        return bbox_list
 
     def get_image_cam(self, system_pose: Pose, gui: MultiTerminalGUI, save: bool = False):
         """
@@ -192,7 +188,6 @@ class CameraHandler:
 
         """
         try:
-            gui.write_to_terminal(2, f"Record point cloud for {plant_name} started.")
             create_plc.record_and_save(plant_name=plant_name, frames=frames)
             gui.write_to_terminal(2, f"Point cloud for {plant_name} recorded and saved.")
         except Exception as e:
