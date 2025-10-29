@@ -1,3 +1,39 @@
-=== Stato_calcoli - Started: 2025-10-29 13:56:21.785037 ===
+=== Stato_calcoli - Started: 2025-10-29 19:04:24.361813 ===
 
++- Controller - Target raggiunto! -+
++- Controller - Target raggiunto! -+
++- [Scan] ✅ Pianta 1 selezionata -+
++- Controller - Target raggiunto! -+
++- Pronto per raggiungere top. -+
++- Soluzione inversa trovata per la posizione [300.0, 300.0, 600.0, -180.0, 0.0, 180.0]. soluzione: 0,{-154.767540,-6.268417,74.506082,21.765450,-90.199058,115.571318},InverseSolution(300.000000,300.000000,600.000000,-180.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-154.76754, -6.268417, 74.506082, 21.76545, -90.199058, 115.571318] -+
++- Controller - Target raggiunto! -+
++- Pronto per raggiungere fronte. -+
++- Soluzione inversa trovata per la posizione [300.0, 540.0, 535.0, -141.0, 0.0, 180.0]. soluzione: 0,{-128.528473,38.745848,17.631869,66.180081,-113.190054,148.762967},InverseSolution(300.000000,540.000000,535.000000,-141.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-128.528473, 38.745848, 17.631869, 66.180081, -113.190054, 148.762967] -+
++- Controller - Target raggiunto! -+
++- Soluzione inversa trovata per la posizione [300.0, 300.0, 600.0, -180.0, 0.0, 180.0]. soluzione: 0,{-154.767540,-6.268417,74.506082,21.765450,-90.199058,115.571318},InverseSolution(300.000000,300.000000,600.000000,-180.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-154.76754, -6.268417, 74.506082, 21.76545, -90.199058, 115.571318] -+
++- Controller - Target raggiunto! -+
++- Pronto per raggiungere destra. -+
++- Soluzione inversa trovata per la posizione [514.0, 300.0, 555.0, -151.0, 0.0, 90.0]. soluzione: 0,{-164.954802,30.583874,28.134273,59.387472,-82.893256,193.691225},InverseSolution(514.000000,300.000000,555.000000,-151.000000,0.000000,90.000000,0,0); -+
++- Angoli calcolati: [-164.954802, 30.583874, 28.134273, 59.387472, -82.893256, 193.691225] -+
++- Controller - Target raggiunto! -+
++- Soluzione inversa trovata per la posizione [300.0, 300.0, 600.0, -180.0, 0.0, 180.0]. soluzione: 0,{-154.767540,-6.268417,74.506082,21.765450,-90.199058,115.571318},InverseSolution(300.000000,300.000000,600.000000,-180.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-154.76754, -6.268417, 74.506082, 21.76545, -90.199058, 115.571318] -+
++- Controller - Target raggiunto! -+
++- Pronto per raggiungere dietro. -+
++- Soluzione inversa trovata per la posizione [300.0, 54.0, 535.0, -141.0, 0.0, 0.0]. soluzione: 0,{-210.847817,-24.442157,94.170346,42.602256,-57.315480,232.866121},InverseSolution(300.000000,54.000000,535.000000,-141.000000,0.000000,0.000000,0,0); -+
++- Angoli calcolati: [-210.847817, -24.442157, 94.170346, 42.602256, -57.31548, 232.866121] -+
++- Controller - Target raggiunto! -+
++- Soluzione inversa trovata per la posizione [300.0, 300.0, 600.0, -180.0, 0.0, 180.0]. soluzione: 0,{-154.767540,-6.268417,74.506082,21.765450,-90.199058,115.571318},InverseSolution(300.000000,300.000000,600.000000,-180.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-154.76754, -6.268417, 74.506082, 21.76545, -90.199058, 115.571318] -+
++- Controller - Target raggiunto! -+
++- Pronto per raggiungere sinistra. -+
++- Soluzione inversa trovata per la posizione [57.0, 300.0, 535.0, -141.0, 0.0, -90.0]. soluzione: 0,{-116.729647,-27.479072,109.320024,-11.718038,-124.408213,57.293888},InverseSolution(57.000000,300.000000,535.000000,-141.000000,0.000000,-90.000000,0,0); -+
++- Angoli calcolati: [-116.729647, -27.479072, 109.320024, -11.718038, -124.408213, 57.293888] -+
++- Controller - Target raggiunto! -+
++- Soluzione inversa trovata per la posizione [300.0, 300.0, 600.0, -180.0, 0.0, 180.0]. soluzione: 0,{-154.767540,-6.268417,74.506082,21.765450,-90.199058,115.571318},InverseSolution(300.000000,300.000000,600.000000,-180.000000,0.000000,180.000000,0,0); -+
++- Angoli calcolati: [-154.76754, -6.268417, 74.506082, 21.76545, -90.199058, 115.571318] -+
++- Controller - Target raggiunto! -+
 +- Controller - Target raggiunto! -+

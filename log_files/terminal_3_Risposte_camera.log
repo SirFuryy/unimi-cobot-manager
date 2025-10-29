@@ -1,20 +1,9 @@
-=== Risposte_camera - Started: 2025-10-29 13:56:21.785037 ===
+=== Risposte_camera - Started: 2025-10-29 19:04:24.361813 ===
 
 +- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
-+- Creazione della camera eseguita! -+
++- ZED camera initialized. -+
++- Image captured and saved from ZED camera. -+
++- ZED camera closed. -+
++- Piante trovate: [[385.57206094264984, 624.5219707489014, -32.17632882297039, 206.86468482017517, 159.49630737304688, 118.09930577874184], [-303.8068264722824, 608.6147129535675, -44.43729482591152, 147.24913239479065, 135.9291672706604, 190.04013016819954]] -+
++- Record point cloud for plant_1 started. -+
++- Point cloud for plant_1 recorded and saved. -+

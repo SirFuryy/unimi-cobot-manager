@@ -71,7 +71,6 @@ class MultiTerminalGUI:
         self.terminals = {}
         self.queues = {}
         self.file_locks = {}
-        print("ok fin qui")
         
         # Setup directory e file di log
         self.log_dir = Path(log_directory)
@@ -128,8 +127,8 @@ class MultiTerminalGUI:
             # Scrivi header
             self.log_files[i].write(f"=== {title} - Started: {datetime.now()} ===\n\n")
             self.log_files[i].flush()
-    
-    def _create_styled_button(self, parent, text, command=None, width=20, color_type='primary'):
+
+    def _create_styled_button(self, parent, text, command = None, width=20, color_type='primary'):
         """Crea un pulsante stilizzato."""
         colors = {
             'primary': (self.colors['accent_2'], '#ffffff'),
@@ -144,7 +143,7 @@ class MultiTerminalGUI:
         btn = tk.Button(
             parent,
             text=text,
-            command=command,
+            command=command, # type: ignore
             width=width,
             font=("Segoe UI", 9, "bold"),
             bg=bg_color,
@@ -362,7 +361,9 @@ class MultiTerminalGUI:
             fg=self.colors['text_secondary']
         )
         self.status_label.pack(pady=5)
-        
+
+        self.scan_buttons_frame: tk.Frame | None = None  # Placeholder per i pulsanti di scansione
+
         def _set_status_text(text, color=None):
             """Aggiorna in modo sicuro la status_label dal thread principale."""
             status_icons = {

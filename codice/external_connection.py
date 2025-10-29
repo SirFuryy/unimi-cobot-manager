@@ -3,7 +3,7 @@ import json
 import time
 import threading
 
-from multi_terminal_gui import MultiTerminalGUI
+from multi_terminal_gui_class import MultiTerminalGUI
 from pose_class import Pose
 
 def send_pose_to_socket(ip: str, port: int, gui: MultiTerminalGUI, pose: Pose):
@@ -30,9 +30,9 @@ def send_pose_to_socket(ip: str, port: int, gui: MultiTerminalGUI, pose: Pose):
             }
 
             client_socket.sendall(json.dumps(pose_msg).encode('utf-8'))
-            gui.write_to_terminal(0, "Pose message sent:", json.dumps(pose_msg, indent=2))
+            gui.write_to_terminal(0, "Pose message sent:\n" + json.dumps(pose_msg, indent=2))
     except Exception as e:
-        gui.write_to_terminal(4, "Error sending pose:", e)
+        gui.write_to_terminal(4, f"Error sending pose: {e}")
 
 def aspetta_risposta(ip: str, port: int, gui: MultiTerminalGUI):
     """
@@ -76,25 +76,25 @@ def aspetta_risposta(ip: str, port: int, gui: MultiTerminalGUI):
                 return None
 
         except Exception as e:
-            gui.write_to_terminal(4, "Error receiving response:", e)
+            gui.write_to_terminal(4, f"Error receiving response: {e}")
             return None
-        
-def _response_loop(ip: str, port: int, callback):
+
+def _response_loop(ip: str, port: int, gui: MultiTerminalGUI, callback):
     """
     Internal loop running in a thread to listen for responses continuously.
     Calls the callback with the JSON response when received.
     """
     while True:
-        response = aspetta_risposta(ip, port)
+        response = aspetta_risposta(ip, port, gui)
         if response is not None:
             callback(response)
 
-def start_listening_thread(ip: str, port: int, callback):
+def start_listening_thread(ip: str, port: int, gui: MultiTerminalGUI, callback):
     """
     Start a background thread that listens for JSON responses on the given IP and port.
     When a response is received, the callback(response) is invoked.
     """
-    thread = threading.Thread(target=_response_loop, args=(ip, port, callback))
+    thread = threading.Thread(target=_response_loop, args=(ip, port, gui, callback))
     thread.daemon = True
     thread.start()
     return thread

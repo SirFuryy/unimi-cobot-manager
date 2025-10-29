@@ -13,7 +13,7 @@ BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(BASE_PATH)
 
 from dobot_api import DobotApiDashboard, DobotApi, DobotApiMove, DobotApiFeedBack
-from codice.multi_terminal_gui import MultiTerminalGUI
+from multi_terminal_gui_class import MultiTerminalGUI
 
 # Default IP and ports for the Dobot robot
 IP_DOBOT = "192.168.5.1"
@@ -23,22 +23,9 @@ FEED_PORT = 30005
 
 class RobotController:
     def __init__(self, gui: MultiTerminalGUI, ip: str = IP_DOBOT):
-        self.gui = gui
-        self.ip = ip
-        self.dashboard = None
-        self.move = None
-        self.feed = None
-        self.feedFour = None
-        self.connected = False
-
-    def connect(self):
-        """
-        Establish standard connections to the Dobot robot for dashboard, movement, and feedback.
-        """
-
-        if self.connected:
-            self.gui.write_to_terminal(0, "Già connesso al robot.")
-            return
+        self.gui : MultiTerminalGUI = gui
+        self.ip : str = ip
+        self.connected : bool = False
 
         try:
             print("Sto stabilendo la connessione con il robot...")
@@ -47,18 +34,19 @@ class RobotController:
             self.feed = DobotApi(self.ip, FEED_PORT, self.gui)                 # general API (unused in this context)
             self.feedFour = DobotApiFeedBack(self.ip, FEED_PORT, self.gui)     # feedback (200ms) connection
             self.gui.write_to_terminal(0, "Connessione al robot riuscita!")
-            self.connected = True
         except Exception as e:
             msg = f"Connessione al robot fallita: {str(e)}"
             self.gui.write_to_terminal(0, msg)
             raise e
+        
+        self.connected = True
 
     def run_point(self, target_joints: list):
         """
         Move the robot to the specified joint angles (target_joints list of 6 values).
         Blocks until the robot is within threshold of the target.
         """
-
+        
         # Move the robot to the target joint angles
         self.move.JointMovJ(target_joints[0], target_joints[1], target_joints[2],
                            target_joints[3], target_joints[4], target_joints[5])
@@ -170,6 +158,7 @@ class RobotController:
         """
         Get the current Cartesian pose of the robot as a list of floats [x, y, z, rx, ry, rz].
         """
+        
         match = re.search(r'\{([^}]*)\}', self.dashboard.GetPose())
         if match:
             values_str = match.group(1)

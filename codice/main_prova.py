@@ -6,32 +6,37 @@ import tkinter as tk
 from transforms3d.euler import euler2quat
 import numpy as np
 
-from camera_handler import CameraHandler
+from camera_handler_class import CameraHandler
 import percorsi_robot
-import robot_controller
+from robot_controller_class import RobotController
 import feed_thread
-from codice.multi_terminal_gui import MultiTerminalGUI
+from multi_terminal_gui_class import MultiTerminalGUI
 from pose_class import Pose
 
-global dashboard, move, feed, feedFour, zed
+global dobot
+global zed
+global gui
 
-def avvia_programma(gui: MultiTerminalGUI):
-    global dashboard, move, feed, feedFour, zed
+def avvia_programma():
+    global dobot, zed, gui
     
-    # Initialize robot connection
-    dashboard, move, feed, feedFour = robot_controller.ConnessioneStandard(gui)
-    gui.write_to_terminal(0, f"Connessione al robot eseguita!")
-    
+    try:
+        dobot = RobotController(gui)
+        gui.write_to_terminal(0, f"Connessione al robot eseguita!")
+    except Exception as e:
+        gui.write_to_terminal(4, f"Connessione al robot fallita: {str(e)}")
+        return
+
     # Initialize camera
     zed = CameraHandler()
     gui.write_to_terminal(2, f"Creazione della camera eseguita!")
 
     # Start feedback threads
-    thread_feed = threading.Thread(target=feed_thread.GetFeed200ms, args=(feedFour,), name="FeedbackThread")
+    thread_feed = threading.Thread(target=feed_thread.GetFeed200ms, args=(dobot.feedFour,), name="FeedbackThread")
     thread_feed.daemon = True
     thread_feed.start()
 
-    thread_error = threading.Thread(target=feed_thread.ClearRobotError, args=(dashboard, gui), name="ErrorThread")
+    thread_error = threading.Thread(target=feed_thread.ClearRobotError, args=(dobot.dashboard, gui), name="ErrorThread")
     thread_error.daemon = True
     thread_error.start()
 
@@ -50,29 +55,29 @@ def avvia_programma(gui: MultiTerminalGUI):
     gui.write_to_terminal(0, f"Coordinate salvate: {CORD_RIPOSO}")
 
     # Enable robot and set speed
-    robot_controller.enable(dashboard)
+    dobot.enable()
     gui.write_to_terminal(0, "Abilitazione completata :)")
     
     try:
-        dashboard.SpeedFactor(30)
-        dashboard.SpeedJ(40)
+        dobot.dashboard.SpeedFactor(30)
+        dobot.dashboard.SpeedJ(40)
         gui.write_to_terminal(0, "Velocità settata")
     except Exception:
         pass
 
     # Move robot to initial position (example)
     initial_joints = [-90.0000, -75.0000, 138.0000, 27.0000, -90.0000, 180.0000]
-    robot_controller.RunPoint(dashboard, move, gui, initial_joints)
+    dobot.run_point(initial_joints)
     
     gui.set_status("READY", "yellow")
 
-def find_plant(plants_number: int, gui: MultiTerminalGUI):
-    global dashboard, move, feed, feedFour, zed
+def find_plant(plants_number: int):
+    global dobot, zed, gui
 
     high_vision_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
     HIGH_VISION_POSE = [-120.0000, 102.0000, 659.0000, 160.0000, 3.0000, 175.0000]
-    robot_controller.RunPoint(dashboard, move, gui, high_vision_joints)
-    
+    dobot.run_point(high_vision_joints)
+
     """ joint alti per secondo quadrante
     prima j1 a -10 (giro per avere spazio)
     poi j2 e j3 a 44 e -94 (j2 si sposta di 90 gradi in senso orario, j3 si abbassa di 180 gradi percvhé il braccio ora è girato)
@@ -110,33 +115,35 @@ def find_plant(plants_number: int, gui: MultiTerminalGUI):
 
     return list_of_plants
     
-def scan_and_record(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
-    global dashboard, move, feed, feedFour
+def scan_and_record(plant_position: list, plant_name: str):
+    global dobot, gui
     
     gui.write_to_terminal(0, f"Main - Start scan and record for {plant_name}.")
     
     # Frame necessari: 630. Attualmente il movimento completo con questa velocità è di 42 secondi
-    percorsi_robot.scan_plant(plant_position, plant_name, dashboard, move, gui, frames_to_record=630)
+    percorsi_robot.scan_plant(plant_position, plant_name, dobot, gui, frames_to_record=630)
     
     gui.write_to_terminal(0, f"Main - Scan and record for {plant_name} completed.")
     
 def _sar(plant_position: list, plant_name: str, gui: MultiTerminalGUI):
-    threading.Thread(target=scan_and_record, args=(plant_position, plant_name, gui), daemon=True).start()
+    threading.Thread(target=scan_and_record, args=(plant_position, plant_name), daemon=True).start()
     
-def _make_thread_runner(target, gui, *args, daemon=True):
+def _make_thread_runner(target, *args, daemon=True):
     """
     Restituisce una funzione che gestisce il thread in modo sicuro,
     ricreandolo solo quando quello precedente è terminato.
     """
+    global gui
     thread_container : dict[str, threading.Thread | None] = {"thread": None}  # usiamo un dict per mutabilità
 
     def runner():
         # Se non esiste thread o è terminato, creane uno nuovo
         if thread_container["thread"] is None or not thread_container["thread"].is_alive():
+            print(f"Starting thread for {target.__name__}")
             thread_container["thread"] = threading.Thread(target=target, args=args, daemon=daemon)
             thread_container["thread"].start()
         else:
-            gui.write_to_terminal(4, "Il thread è già in esecuzione.")
+            gui.write_to_terminal(4, f"Il thread {target.__name__} è già in esecuzione.")
 
     return runner
 
@@ -151,13 +158,14 @@ def main():
     ]
     
     # Inizializza GUI
+    global gui
     gui = MultiTerminalGUI(terminal_titles=terminal_names)
 
     # Button to start the robot
     start_button = gui._create_styled_button(
         gui.control_container,
         text="▶️ AVVIA PROGRAMMA",
-        command= _make_thread_runner(avvia_programma, gui, gui),
+        command= _make_thread_runner(avvia_programma),
         width=20,
         color_type='success'
     )
@@ -213,7 +221,7 @@ def main():
                 return
 
             def scan_task():
-                list_of_plants = find_plant(n, gui)    #Restituisce un dizionario con punti estremi delle varie bounding box
+                list_of_plants = find_plant(n)    #Restituisce un dizionario con punti estremi delle varie bounding box
 
                 if not list_of_plants or len(list_of_plants) == 0:
                     gui.write_to_terminal(4, "[Scan] ❌ Nessuna pianta trovata dalla camera oppure errore occorso nella scansione")
@@ -222,7 +230,7 @@ def main():
                 
                 def create_buttons():
                     # Rimuove eventuali pulsanti precedenti
-                    if hasattr(gui, 'scan_buttons_frame') and gui.scan_buttons_frame.winfo_exists():
+                    if gui.scan_buttons_frame is not None and gui.scan_buttons_frame.winfo_exists():
                         try:
                             gui.scan_buttons_frame.destroy()
                         except Exception:
@@ -247,7 +255,6 @@ def main():
                     )
                     scan_title.pack(pady=5)
 
-                    gui.scan_handlers = {}
                     for i in range(n):
                         def make_handler(idx): 
                             print(f"creando pulsante con pianta {idx}: {list_of_plants[idx]}")
@@ -291,8 +298,7 @@ def main():
                             btn['background'] = gui.colors['accent_1']
                         
                         btn.bind("<Enter>", on_enter)
-                        btn.bind("<Leave>", on_leave)
-                        #gui.scan_handlers[i] = make_handler(i)     #se attivo svolge il lavoro una seconda volta inutilmente
+                        btn.bind("<Leave>", on_leave)       
 
                 # Creazione dei widget deve avvenire nel thread principale
                 gui.root.after(0, create_buttons)
@@ -320,8 +326,8 @@ def main():
     gui.run()
 
     # On exit, disable the robot
-    if dashboard is not None:
-        dashboard.DisableRobot()
+    if dobot is not None:
+        dobot.disable()
     
     gui.write_to_terminal(0, "Disabilitazione completata :)")
 

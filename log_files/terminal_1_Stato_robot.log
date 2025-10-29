@@ -1,91 +1,10 @@
-=== Stato_robot - Started: 2025-10-29 13:56:21.785037 ===
+=== Stato_robot - Started: 2025-10-29 19:04:24.361813 ===
 
 +- Connessione al robot riuscita! -+
 +- Connessione al robot eseguita! -+
 +- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
++- Controller - Robot abilitato. -+
 +- Abilitazione completata :) -+
 +- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
-+- Connessione al robot riuscita! -+
-+- Connessione al robot eseguita! -+
-+- Coordinate salvate: [142.0, 19.5, 314.8, 180.0, 0.0, -180.0] -+
-+- Abilitazione completata :) -+
-+- Velocità settata -+
++- Main - Start scan and record for plant_1. -+
++- Main - Scan and record for plant_1 completed. -+

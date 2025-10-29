@@ -5,9 +5,9 @@ import threading
 from typing import Tuple, List
 
 from pose_class import Pose
-from camera_handler import CameraHandler
-import robot_controller
-from multi_terminal_gui import MultiTerminalGUI
+from camera_handler_class import CameraHandler
+from robot_controller_class import RobotController
+from multi_terminal_gui_class import MultiTerminalGUI
 
 global zed
 zed: CameraHandler = CameraHandler()
@@ -21,7 +21,7 @@ def start_scanning(pose: Pose, gui: MultiTerminalGUI, plant_name: str, frames_to
     except Exception as e:
         gui.write_to_terminal(4, f"Errore durante la registrazione: {e}")
 
-def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
+def scan_plant(bbox, plant_name: str, dobot: RobotController, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
     Esegue la scansione completa della piantina muovendosi nei quattro punti.
     
@@ -39,7 +39,7 @@ def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, fr
         gui.write_to_terminal(1, "Percorsi - Coordinata Z della piantina non valida, valore negativo.")
         return
     
-    if not robot_controller.position_reachable([bbox[0], bbox[1], bbox[5], -180.0000, 0.0000, 90.0000]):
+    if not dobot.position_reachable([bbox[0], bbox[1], bbox[5], -180.0000, 0.0000, 90.0000]):
         gui.write_to_terminal(1, "Percorsi - Posizione della piantina non raggiungibile.")
         return
     
@@ -48,11 +48,11 @@ def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, fr
         return
 
     if bbox[0] > 0 and bbox[1] > 0:   #Primo quadrante
-        movement_first_quadrant(bbox, plant_name, dashboard, move, gui, frames_to_record)
+        movement_first_quadrant(bbox, plant_name, dobot, gui, frames_to_record)
         return
 
     if bbox[0] < 0 and bbox[1] > 0:   #Secondo quadrante
-        movement_second_quadrant(bbox, plant_name, dashboard, move, gui, frames_to_record)
+        movement_second_quadrant(bbox, plant_name, dobot, gui, frames_to_record)
         return
 
     if bbox[0] < 0 and bbox[1] < 0:   #Terzo quadrante
@@ -63,7 +63,7 @@ def scan_plant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, fr
         gui.write_to_terminal(1, "Percorsi - Posizione della piantina nel quarto quadrante, movimenti non ancora implementati.")
         return
 
-def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
+def movement_first_quadrant(bbox, plant_name: str, dobot: RobotController, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
     Esegue il movimento del braccio per la scansione della piantina nel primo quadrante.
     
@@ -81,55 +81,55 @@ def movement_first_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTe
     
     # arriva al punto iniziale di scansione generale
     start_joints = [-105.0000, -46.0000, 86.0000, 29.0000, -90.0000, 168.0000]
-    robot_controller.RunPoint(dashboard, move, gui, start_joints)
+    dobot.run_point(start_joints)
     
     # Avvia la scansione in background
-    pose = Pose.crea_pose_from_coord(robot_controller.get_current_pose(dashboard))
+    pose = Pose.crea_pose_from_coord(dobot.get_current_pose())
     threading.Thread(target=start_scanning, args=(pose, gui, plant_name, frames_to_record), daemon=True).start()
     
     # reach the top vision of the plant
     gui.write_to_terminal(1, "Pronto per raggiungere top.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant)
+    dobot.raggiungi_punto(coord_top_vision_plant)
     print("alto fatto")
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
 
     # move to first scanning point
     coord_right_vision_plant = [center_z_max[0], center_z_max[1]+240.0, center_z_max[2]+285.0, -141.0000, 0.0000, 180.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere fronte.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_right_vision_plant)
+    dobot.raggiungi_punto(coord_right_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("fronte fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to second scanning point
     coord_front_vision_plant = [center_z_max[0]+214.0, center_z_max[1], center_z_max[2]+305.0, -151.0000, 0.0000, 90.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere destra.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_front_vision_plant)
+    dobot.raggiungi_punto(coord_front_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("destra fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to third scanning point
     coord_left_vision_plant = [center_z_max[0], center_z_max[1]-246.0, center_z_max[2]+285.0, -141.0000, 0.0000, 0.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere dietro.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_left_vision_plant)
+    dobot.raggiungi_punto(coord_left_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("dietro fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to fourth scanning point
     coord_back_vision_plant = [center_z_max[0]-243.0, center_z_max[1], center_z_max[2]+285.0, -141.0000, 0.0000, -90.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere sinistra.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_back_vision_plant)
+    dobot.raggiungi_punto(coord_back_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("sinistra fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
-    
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
+
     # return to ambient high vision point
-    robot_controller.RunPoint(dashboard, move, gui, start_joints)
-   
-    
-def movement_second_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiTerminalGUI, frames_to_record: int = 300):
+    dobot.run_point(start_joints)
+
+
+def movement_second_quadrant(bbox, plant_name: str, dobot: RobotController, gui: MultiTerminalGUI, frames_to_record: int = 300):
     """
     Esegue il movimento del braccio per la scansione della piantina nel primo quadrante.
     
@@ -145,49 +145,49 @@ def movement_second_quadrant(bbox, plant_name: str, dashboard, move, gui: MultiT
 
     # arriva al punto iniziale di scansione generale
     start_joints = [103.0000, 39.0000, -86.0000, -24.0000, 88.0000, 195.0000]
-    robot_controller.RunPoint(dashboard, move, gui, start_joints)
+    dobot.run_point(start_joints)
     
     # Avvia la scansione in background
-    pose = Pose.crea_pose_from_coord(robot_controller.get_current_pose(dashboard))
+    pose = Pose.crea_pose_from_coord(dobot.get_current_pose())
     threading.Thread(target=start_scanning, args=(pose, gui, plant_name, frames_to_record), daemon=True).start()
     
     # reach the top vision of the plant
     gui.write_to_terminal(1, "Pronto per raggiungere top.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant)
+    dobot.raggiungi_punto(coord_top_vision_plant)
     print("alto fatto")
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
 
     # move to first scanning point
     coord_right_vision_plant = [center_z_max[0], center_z_max[1]+240.0, center_z_max[2]+285.0, -141.0000, 0.0000, 180.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere fronte.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_right_vision_plant)
+    dobot.raggiungi_punto(coord_right_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("fronte fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to second scanning point
     coord_front_vision_plant = [center_z_max[0]+214.0, center_z_max[1], center_z_max[2]+305.0, -151.0000, 0.0000, 90.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere destra.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_front_vision_plant)
+    dobot.raggiungi_punto(coord_front_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("destra fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to third scanning point
     coord_left_vision_plant = [center_z_max[0], center_z_max[1]-246.0, center_z_max[2]+285.0, -141.0000, 0.0000, 0.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere dietro.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_left_vision_plant)
+    dobot.raggiungi_punto(coord_left_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("dietro fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
 
     # move to fourth scanning point
     coord_back_vision_plant = [center_z_max[0]-243.0, center_z_max[1], center_z_max[2]+285.0, -141.0000, 0.0000, -90.0000]
     gui.write_to_terminal(1, "Pronto per raggiungere sinistra.")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_back_vision_plant)
+    dobot.raggiungi_punto(coord_back_vision_plant)
     time.sleep(0.1)  # Attendi un secondo per permettere la scansione
     print("sinistra fatto")
-    robot_controller.raggiungi_punto(dashboard, move, gui, coord_top_vision_plant) #return to top vision point
-    
+    dobot.raggiungi_punto(coord_top_vision_plant) #return to top vision point
+
     # return to ambient high vision point
-    robot_controller.RunPoint(dashboard, move, gui, start_joints)
+    dobot.run_point(start_joints)

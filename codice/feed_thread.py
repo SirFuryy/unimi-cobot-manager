@@ -4,8 +4,8 @@ import threading
 import time
 import re
 import datetime
-from dobot_api import alarmAlarmJsonFile, DobotApiDashboard
-from multi_terminal_gui import MultiTerminalGUI
+from dobot_api import alarmAlarmJsonFile, DobotApiDashboard, DobotApiFeedBack
+from multi_terminal_gui_class import MultiTerminalGUI
 
 # Locks for thread synchronization
 feed_lock = threading.Lock()
@@ -29,7 +29,7 @@ def converti_feed_in_string(values):
     s += "]"
     return s
 
-def GetFeed200ms(feedFour):
+def GetFeed200ms(feedFour: DobotApiFeedBack):
     """
     Thread function: continuously read feedback from the robot every 200ms.
     Updates global state variables with the latest values.
@@ -38,6 +38,11 @@ def GetFeed200ms(feedFour):
     while True:
         with feed_lock:
             feedInfo = feedFour.feedBackData()
+            
+            if feedInfo is None:    # In case of communication error, skip this iteration
+                time.sleep(0.2)
+                continue
+            
             # Check for valid data
             if hex(feedInfo['test_value'][0]) == '0x123456789abcdef':
                 robotMode = feedInfo['robot_mode'][0]

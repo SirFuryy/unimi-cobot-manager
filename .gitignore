@@ -3,3 +3,5 @@ ign/
 images/
 scansioni/
 __pycache__/
+crop_sensing/
+log_files/

@@ -3,7 +3,7 @@
 from crop_sensing import zed_manager, find_plant, create_plc
 import numpy as np
 
-from multi_terminal_gui import MultiTerminalGUI
+from multi_terminal_gui_class import MultiTerminalGUI
 from pose_class import Pose
 
 from typing import Tuple, List, Optional, Dict
@@ -193,7 +193,7 @@ class CameraHandler:
         """
         try:
             gui.write_to_terminal(2, f"Record point cloud for {plant_name} started.")
-            create_plc.record_and_save(plant_name=plant_name, frames=frames)
+            create_plc.record_and_save(plant_name=plant_name, frames=frames, mesh=False)
             gui.write_to_terminal(2, f"Point cloud for {plant_name} recorded and saved.")
         except Exception as e:
             gui.write_to_terminal(4, f"Failed to record point cloud: {e}")
@@ -383,5 +383,5 @@ class CameraHandler:
 if __name__ == "__main__":
     gui = MultiTerminalGUI()
     camera_handler = CameraHandler()
-    test_pose = Pose(0, 0, 0, 0, 0, 0)
+    test_pose = Pose()
     camera_handler.usa_cam(test_pose, plants_number=2)
