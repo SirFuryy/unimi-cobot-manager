@@ -43,25 +43,6 @@ class MultiTerminalGUI:
             'button_active': '#238636',      # Pulsanti attivi
         }
         
-        # Colori per i diversi terminali
-        self.terminal_colors = [
-            ('#238636', '#90ee90'),  # Verde
-            ('#1f6feb', '#87ceeb'),  # Blu
-            ('#d29922', '#ffd700'),  # Giallo/Oro
-            ('#a371f7', '#dda0dd'),  # Viola
-            ('#f778ba', '#ffb6c1'),  # Rosa
-            ('#58a6ff', '#87ceeb'),  # Azzurro
-        ]
-
-        self.terminal_colors = [
-            ('#1f6feb', '#9897a9'),  # Blu
-            ('#1f6feb', '#b9bbb6'),  # Blu
-            ('#1f6feb', '#d7d2cb'),  # Blu
-            ('#1f6feb', '#dbe2e9'),  # Blu
-            ('#1f6feb', '#c0c0c0'),  # Blu
-            ('#1f6feb', '#979788'),  # Blu
-        ]
-        
         # Crea o usa la finestra principale
         if master is None:
             self.root = tk.Tk()
@@ -250,7 +231,7 @@ class MultiTerminalGUI:
         
         for idx, (row, col) in enumerate(positions):
             # Colore personalizzato per ogni terminale
-            border_color, text_color = self.terminal_colors[idx]
+            border_color, text_color = '#1f6feb', '#b9bbb6'
             
             # Frame per ogni terminale con bordo colorato
             terminal_frame = tk.Frame(
