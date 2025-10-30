@@ -3,5 +3,13 @@ ign/
 images/
 scansioni/
 __pycache__/
-crop_sensing/
+crop_sensing/data
 log_files/
+mocked_class/
+codice/log_files/
+codice/crop_sensing/data
+mesh_scan.py
+video_scan.py
+codice/dist/
+codice/build/
+codice/main.spec

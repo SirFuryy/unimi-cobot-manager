@@ -52,7 +52,7 @@ class MultiTerminalGUI:
             
             # Stile moderno per la finestra
             try:
-                self.root.iconbitmap(default='')  # Rimuove icona default se possibile
+                self.root.iconbitmap("assets/robot.ico")  # Rimuove icona default se possibile
             except:
                 pass
         else:
